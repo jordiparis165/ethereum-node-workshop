@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT.parent / "btc"))
 import watch_sync
 
 LOG = ROOT / "sync-watch.log"
-INTERVAL = 300
+INTERVAL = 60
 REMOTE = r'''python3 - <<'PY'
 import json, urllib.request
 def rpc(method):
