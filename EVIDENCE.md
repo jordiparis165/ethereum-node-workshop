@@ -1,58 +1,19 @@
-# Verification Evidence
+# Vérifications et preuves
 
-Captured on 29 October 2026 from the school VPS.
+Les quatre images du dossier `screenshots/` sont des captures natives de l’écran Windows avec Windows Terminal au premier plan. Les commandes affichées ont interrogé le VPS de l’école par SSH à l’aide des identifiants locaux de `btc/.env` ; aucun secret n’est imprimé dans les captures.
 
-## Builds
+Captures prises le 29 octobre 2026 vers 23 h 39–23 h 40 (heure locale) :
 
-```text
-Geth v1.17.10-stable
-Lighthouse v8.3.2-a376def
-```
+- `01-compilation.png` : versions des exécutables Geth et Lighthouse présents sur la VM.
+- `02-services.png` : ressources, stockage et sockets en écoute.
+- `03-rpc.png` : appels JSON-RPC et version de l’API Beacon.
+- `04-synchronisation.png` : statuts retournés par Lighthouse et Geth et derniers journaux.
 
-Both binaries were produced by `make` from shallow clones of the official
-source repositories.
+Constats visibles dans les preuves :
 
-## Services
+- `eth_chainId` renvoie `0x1` et Geth a des pairs.
+- `eth_blockNumber` renvoie encore `0x0` et `eth_syncing` indique un bloc courant à zéro.
+- Lighthouse indique `is_optimistic=true`.
+- Le volume `/data` est d’environ 984 Go, inférieur aux 2 To demandés.
 
-```text
-geth.service: enabled, active
-lighthouse.service: enabled, active
-```
-
-`systemd-analyze verify` reported no unit errors.
-
-## RPC
-
-```text
-eth_chainId       -> 0x1
-web3_clientVersion -> Geth/v1.17.10-stable-1df30b18/linux-amd64/go1.25.0
-net_peerCount     -> 0xa
-Beacon API        -> Lighthouse/v8.3.2-a376def/x86_64-linux
-```
-
-The HTTP endpoint was tested from outside the VPS at port `8545`; the WebSocket
-port `8546` and Beacon API port `5052` accepted TCP connections. The Engine API
-remained bound to localhost on `8551`.
-
-## Synchronization
-
-At the latest check on 29 October, Lighthouse was receiving new slots, but the
-execution layer was still syncing. Geth had about 43 peers; `eth_blockNumber`
-still returned `0x0` while Geth downloaded beacon headers. Lighthouse therefore
-reported the head as optimistic and did not confirm the execution engine as
-online. The node is not yet fully synchronized.
-
-An earlier capture reported:
-
-```json
-{
-  "is_syncing": true,
-  "is_optimistic": true,
-  "el_offline": false,
-  "sync_distance": "39"
-}
-```
-
-The node was therefore operational but not yet fully synchronized. The VPS has
-1 TB of data storage while the assignment requests 2 TB, so the final storage
-and full-sync criteria require a larger volume.
+Le nœud n’était donc pas complètement synchronisé au moment de ces captures. Les ETA de journaux sont indicatives et ne prouvent pas la fin de la synchronisation.
