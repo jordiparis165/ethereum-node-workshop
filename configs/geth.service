@@ -1,0 +1,21 @@
+[Unit]
+Description=Geth Ethereum Execution Client
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=adm-mesifi
+Group=adm-mesifi
+Type=simple
+ExecStart=/usr/local/bin/geth --datadir /data/ethereum/geth \
+  --http --http.addr 0.0.0.0 --http.port 8545 --http.api eth,net,web3 --http.vhosts=* \
+  --ws --ws.addr 0.0.0.0 --ws.port 8546 --ws.api eth,net,web3 --ws.origins=* \
+  --authrpc.addr 127.0.0.1 --authrpc.port 8551 --authrpc.vhosts=localhost \
+  --authrpc.jwtsecret /data/ethereum/jwt.hex \
+  --port 30303 --discovery.port 30303 --syncmode snap --cache 4096
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

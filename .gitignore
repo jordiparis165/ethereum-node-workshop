@@ -1,0 +1,5 @@
+.env
+*.secret
+*.key
+*.jwt
+screenshots/private/

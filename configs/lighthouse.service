@@ -1,0 +1,24 @@
+[Unit]
+Description=Lighthouse Ethereum Consensus Client
+After=geth.service
+Wants=geth.service
+
+[Service]
+User=adm-mesifi
+Group=adm-mesifi
+Type=simple
+Environment=HOME=/home/adm-mesifi
+ExecStart=/usr/local/bin/lighthouse bn --network mainnet \
+  --datadir /data/ethereum/lighthouse \
+  --execution-endpoint http://127.0.0.1:8551 \
+  --execution-jwt /data/ethereum/jwt.hex \
+  --checkpoint-sync-url https://sync-mainnet.beaconcha.in \
+  --http --http-address 0.0.0.0 --http-port 5052 --http-allow-origin=* \
+  --metrics --metrics-address 0.0.0.0 --metrics-port 5054 \
+  --listen-address 0.0.0.0 --port 9000 --enr-address CHANGE_ME
+Restart=on-failure
+RestartSec=15
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
