@@ -36,7 +36,13 @@ remained bound to localhost on `8551`.
 
 ## Synchronization
 
-At capture time Lighthouse reported:
+At the latest check on 29 October, Lighthouse was receiving new slots, but the
+execution layer was still syncing. Geth had about 43 peers; `eth_blockNumber`
+still returned `0x0` while Geth downloaded beacon headers. Lighthouse therefore
+reported the head as optimistic and did not confirm the execution engine as
+online. The node is not yet fully synchronized.
+
+An earlier capture reported:
 
 ```json
 {

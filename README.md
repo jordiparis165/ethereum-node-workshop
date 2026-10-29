@@ -5,6 +5,9 @@ and Lighthouse v8.3.2 for the consensus layer. Both clients are compiled from
 their official source repositories; Docker and pre-built client binaries are
 not used.
 
+Le compte rendu rédigé pour le rendu est disponible dans
+[`RAPPORT.md`](RAPPORT.md).
+
 ## Hardware and Constraint
 
 The VPS has 8 vCPUs, 22 GiB RAM and a 1 TB `/data` volume. The assignment
