@@ -16,12 +16,18 @@ LOG = ROOT / "sync-watch.log"
 INTERVAL = 60
 REMOTE = r'''python3 - <<'PY'
 import json, urllib.request
+import subprocess
 def rpc(method):
     body=json.dumps({"jsonrpc":"2.0","method":method,"params":[],"id":1}).encode()
     req=urllib.request.Request("http://127.0.0.1:8545",data=body,headers={"Content-Type":"application/json"})
     return json.loads(urllib.request.urlopen(req,timeout=30).read())["result"]
 cl=json.loads(urllib.request.urlopen("http://127.0.0.1:5052/eth/v1/node/syncing",timeout=20).read())["data"]
-print(json.dumps({"eth_syncing":rpc("eth_syncing"),"block":rpc("eth_blockNumber"),"consensus":cl}))
+lines=subprocess.check_output("journalctl -u geth.service -n 300 --no-pager",shell=True,text=True,stderr=subprocess.DEVNULL).splitlines()
+progress={}
+for line in lines:
+    if "Syncing: state download in progress" in line: progress["state"] = line.split("Syncing:",1)[1].strip()
+    if "Syncing: chain download in progress" in line: progress["chain"] = line.split("Syncing:",1)[1].strip()
+print(json.dumps({"eth_syncing":rpc("eth_syncing"),"block":rpc("eth_blockNumber"),"consensus":cl,"geth_progress":progress}))
 PY'''
 
 
