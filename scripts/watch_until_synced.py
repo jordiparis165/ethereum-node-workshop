@@ -56,27 +56,14 @@ def capture_and_publish():
     ImageGrab.grab().save(screenshots / "04-synchronisation.png")
     log("Full sync verified remotely; captured the visible Windows terminal.")
 
-    report = ROOT / "RAPPORT.md"
-    content = report.read_text(encoding="utf-8")
-    content = content.replace(
-        "La couche de consensus avançait, mais la couche d’exécution n’était pas synchronisée. Je ne présente donc pas le nœud comme entièrement synchronisé.",
-        "Un contrôle ultérieur a confirmé eth_syncing=false, un numéro de bloc non nul, is_optimistic=false, el_offline=false et sync_distance=0. Les deux couches étaient synchronisées à la date de la capture actualisée."
-    )
-    content = content.replace(
-        "La synchronisation complète avant le 31 octobre n’est pas garantie : l’ETA des journaux varie selon les pairs et les ressources disponibles.",
-        "La synchronisation complète a été confirmée par les API des deux clients ; la date et l’état détaillé figurent dans la capture actualisée."
-    )
-    content = content.replace(
-        "Elles prouvent l’état relevé à leur horodatage ; elles ne prétendent pas prouver une synchronisation achevée.",
-        "La capture de synchronisation actualisée montre l’état retourné par les clients lors de sa prise."
-    )
-    report.write_text(content, encoding="utf-8")
+    marker = ROOT / ".sync-complete"
+    marker.write_text(datetime.now().astimezone().strftime("%d/%m/%Y à %H:%M %Z"), encoding="utf-8")
     evidence = ROOT / "EVIDENCE.md"
     evidence.write_text(
-        "# Vérifications et preuves\n\nLes images du dossier `screenshots/` sont des captures natives de l’écran Windows avec Windows Terminal au premier plan. Les commandes affichées interrogent le VPS de l’école par SSH ; aucun secret n’est imprimé.\n\nLa capture de synchronisation a été actualisée après confirmation simultanée de `eth_syncing=false`, d’un numéro de bloc non nul, `is_optimistic=false`, `el_offline=false` et `sync_distance=0`. Consultez `04-synchronisation.png` pour les valeurs et l’heure du relevé. Le volume `/data` de 984 Go reste inférieur aux 2 To demandés.\n",
+        "# Vérifications et preuves\n\nLes captures de `screenshots/` montrent Windows Terminal et des commandes réellement exécutées par SSH sur le VPS.\n\nLa dernière capture de synchronisation a été prise après vérification de `eth_syncing=false`, d’un numéro de bloc non nul, `is_optimistic=false`, `el_offline=false` et `sync_distance=0`. Le volume `/data` de 984 Go reste inférieur aux 2 To demandés.\n",
         encoding="utf-8")
     subprocess.run([sys.executable, str(ROOT / "scripts" / "build_report_pdf.py")], check=True, cwd=ROOT)
-    subprocess.run(["git", "add", "RAPPORT.md", "EVIDENCE.md", "RAPPORT-ETHEREUM.pdf", "screenshots/04-synchronisation.png"], check=True, cwd=ROOT)
+    subprocess.run(["git", "add", ".sync-complete", "EVIDENCE.md", "RAPPORT-ETHEREUM.pdf", "screenshots/04-synchronisation.png"], check=True, cwd=ROOT)
     subprocess.run(["git", "commit", "-m", "Update evidence after full Ethereum synchronization"], check=True, cwd=ROOT)
     subprocess.run(["git", "push", "origin", "master"], check=True, cwd=ROOT)
     log("Updated French report, PDF and screenshots pushed to GitHub.")
