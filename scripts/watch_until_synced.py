@@ -22,12 +22,12 @@ def rpc(method):
     req=urllib.request.Request("http://127.0.0.1:8545",data=body,headers={"Content-Type":"application/json"})
     return json.loads(urllib.request.urlopen(req,timeout=30).read())["result"]
 lines=subprocess.check_output(["journalctl","-u","erigon.service","--since","15 minutes ago","--no-pager"],text=True,stderr=subprocess.DEVNULL).splitlines()
-progress=[line.strip() for line in lines if "[Downloader] Syncing" in line or "[OtterSync]" in line]
+progress=[line.strip() for line in lines if "[Downloader] Syncing" in line or "[OtterSync]" in line or "[4/6 Execution] parallel executed" in line or "head updated" in line]
 caplin=[line.strip() for line in lines if "Checkpoint Sync" in line or "Starting caplin" in line or "[Caplin" in line]
 body=json.dumps({"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",False],"id":2}).encode()
 req=urllib.request.Request("http://127.0.0.1:8545",data=body,headers={"Content-Type":"application/json"})
 latest=json.loads(urllib.request.urlopen(req,timeout=30).read())["result"]
-age=None if latest is None else int(time.time())-int(latest["timestamp"],16)
+age=None if latest is None or int(latest.get("number","0x0"),16)==0 else int(time.time())-int(latest["timestamp"],16)
 print(json.dumps({"eth_syncing":rpc("eth_syncing"),"block":rpc("eth_blockNumber"),"head_age_seconds":age,"service":subprocess.check_output(["systemctl","is-active","erigon.service"],text=True).strip(),"progress":progress[-12:],"caplin":caplin[-12:],"disk_free_bytes":__import__("shutil").disk_usage("/data").free}))
 PY'''
 
@@ -58,6 +58,10 @@ def capture_and_publish():
     args = ["-NoLogo", "-NoExit", "-File", str(terminal_script), "-Section", "sync"]
     proc = subprocess.Popen(["powershell.exe", *args], creationflags=subprocess.CREATE_NEW_CONSOLE)
     time.sleep(12)
+    focus = f"$ws=New-Object -ComObject WScript.Shell; $ws.AppActivate({proc.pid}) | Out-Null"
+    subprocess.run(["powershell.exe", "-NoProfile", "-Command", focus], check=False,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(2)
     ImageGrab.grab().save(screenshots / "04-synchronisation.png")
     log("Full sync verified remotely; captured the visible Windows terminal.")
 

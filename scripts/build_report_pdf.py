@@ -55,8 +55,10 @@ def sync_summary():
             syncing = status.get("eth_syncing")
             progress = status.get("progress", [])
             snapshot = next((line for line in reversed(progress) if "Syncing snapshots" in line), None)
-            line = snapshot or (progress[-1] if progress else "")
+            execution = next((line for line in reversed(progress) if "[4/6 Execution] parallel executed" in line), None)
+            line = execution or snapshot or (progress[-1] if progress else "")
             line = re.sub(r"^.*?\[Downloader\] ", "", line)
+            line = re.sub(r"^.*?\[4/6 Execution\] ", "Execution : ", line)
             if isinstance(syncing, dict):
                 current = int(syncing.get("currentBlock", "0x0"), 16)
                 highest = int(syncing.get("highestBlock", "0x0"), 16)

@@ -20,17 +20,29 @@ print('Consensus layer: Caplin integrated in Erigon (Beacon API kept disabled to
 PY""",
     "sync": r"""echo '$ Erigon service'; systemctl is-active erigon.service; python3 - <<'PY'
 import json, time, urllib.request
+import re, subprocess
 def rpc(method,params=[]):
  data=json.dumps({'jsonrpc':'2.0','method':method,'params':params,'id':1}).encode()
  req=urllib.request.Request('http://127.0.0.1:8545',data=data,headers={'Content-Type':'application/json'})
  return json.loads(urllib.request.urlopen(req,timeout=30).read())['result']
 print('eth_chainId =',rpc('eth_chainId'))
 print('eth_blockNumber =',rpc('eth_blockNumber'))
-print('eth_syncing =',rpc('eth_syncing'))
+sync=rpc('eth_syncing')
+print('eth_syncing =',sync)
+if isinstance(sync,dict):
+ target=sync.get('highestBlock')
+ if target:
+  block=rpc('eth_getBlockByNumber',[target,False])
+  print('snapshot target block available =',None if block is None else block.get('number'))
 head=rpc('eth_getBlockByNumber',['latest',False])
-print('head_age_seconds =',None if head is None else int(time.time())-int(head['timestamp'],16))
+print('head_age_seconds =',None if head is None or int(head.get('number','0x0'),16)==0 else int(time.time())-int(head['timestamp'],16))
+logs=subprocess.check_output(['journalctl','-q','-u','erigon.service','--since','20 minutes ago','--no-pager'],text=True,stderr=subprocess.DEVNULL).splitlines()
+execution=next((line for line in reversed(logs) if '[4/6 Execution] parallel executed' in line),None)
+if execution:
+ match=re.search(r'blk=(\d+).*?blk/s=([\d.]+).*?isApplyingBlocks=(\w+)',execution)
+ print('execution_stage =',f'block={match.group(1)} rate={match.group(2)} blk/s applying={match.group(3)}' if match else execution[-180:])
 PY
-echo '$ Recent snapshot and Caplin logs'; journalctl -u erigon.service -n 18 --no-pager | grep -E 'Downloader|Caplin|Checkpoint Sync|Starting caplin' | tail -10; echo '$ Disk and RAM'; df -h /data; free -h""",
+echo '$ Disk and RAM'; df -h /data; free -h""",
 }
 
 
