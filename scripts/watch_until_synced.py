@@ -13,21 +13,22 @@ sys.path.insert(0, str(ROOT.parent / "btc"))
 import watch_sync
 
 LOG = ROOT / "sync-watch.log"
+STATUS_FILE = ROOT / "sync-status.json"
 INTERVAL = 60
 REMOTE = r'''python3 - <<'PY'
-import json, urllib.request
-import subprocess
+import json, subprocess, time, urllib.request
 def rpc(method):
     body=json.dumps({"jsonrpc":"2.0","method":method,"params":[],"id":1}).encode()
     req=urllib.request.Request("http://127.0.0.1:8545",data=body,headers={"Content-Type":"application/json"})
     return json.loads(urllib.request.urlopen(req,timeout=30).read())["result"]
-cl=json.loads(urllib.request.urlopen("http://127.0.0.1:5052/eth/v1/node/syncing",timeout=20).read())["data"]
-lines=subprocess.check_output("journalctl -u geth.service -n 300 --no-pager",shell=True,text=True,stderr=subprocess.DEVNULL).splitlines()
-progress={}
-for line in lines:
-    if "Syncing: state download in progress" in line: progress["state"] = line.split("Syncing:",1)[1].strip()
-    if "Syncing: chain download in progress" in line: progress["chain"] = line.split("Syncing:",1)[1].strip()
-print(json.dumps({"eth_syncing":rpc("eth_syncing"),"block":rpc("eth_blockNumber"),"consensus":cl,"geth_progress":progress}))
+lines=subprocess.check_output(["journalctl","-u","erigon.service","--since","15 minutes ago","--no-pager"],text=True,stderr=subprocess.DEVNULL).splitlines()
+progress=[line.strip() for line in lines if "[Downloader] Syncing" in line or "[OtterSync]" in line]
+caplin=[line.strip() for line in lines if "Checkpoint Sync" in line or "Starting caplin" in line or "[Caplin" in line]
+body=json.dumps({"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",False],"id":2}).encode()
+req=urllib.request.Request("http://127.0.0.1:8545",data=body,headers={"Content-Type":"application/json"})
+latest=json.loads(urllib.request.urlopen(req,timeout=30).read())["result"]
+age=None if latest is None else int(time.time())-int(latest["timestamp"],16)
+print(json.dumps({"eth_syncing":rpc("eth_syncing"),"block":rpc("eth_blockNumber"),"head_age_seconds":age,"service":subprocess.check_output(["systemctl","is-active","erigon.service"],text=True).strip(),"progress":progress[-12:],"caplin":caplin[-12:],"disk_free_bytes":__import__("shutil").disk_usage("/data").free}))
 PY'''
 
 
@@ -46,11 +47,9 @@ def read_status(client):
 
 
 def fully_synced(status):
-    cl = status["consensus"]
-    el = status["eth_syncing"]
-    return (el is False and int(status["block"], 16) > 0 and
-            cl.get("is_syncing") is False and cl.get("is_optimistic") is False and
-            cl.get("el_offline") is False and cl.get("sync_distance") == "0")
+    return (status["service"] == "active" and status["eth_syncing"] is False and
+            int(status["block"], 16) > 0 and
+            status["head_age_seconds"] is not None and 0 <= status["head_age_seconds"] <= 300)
 
 
 def capture_and_publish():
@@ -66,7 +65,7 @@ def capture_and_publish():
     marker.write_text(datetime.now().astimezone().strftime("%d/%m/%Y à %H:%M %Z"), encoding="utf-8")
     evidence = ROOT / "EVIDENCE.md"
     evidence.write_text(
-        "# Vérifications et preuves\n\nLes captures de `screenshots/` montrent Windows Terminal et des commandes réellement exécutées par SSH sur le VPS.\n\nLa dernière capture de synchronisation a été prise après vérification de `eth_syncing=false`, d’un numéro de bloc non nul, `is_optimistic=false`, `el_offline=false` et `sync_distance=0`. Le volume `/data` de 984 Go reste inférieur aux 2 To demandés.\n",
+        "# Vérifications et preuves\n\nLes captures de `screenshots/` montrent Windows Terminal et des commandes réellement exécutées par SSH sur le VPS.\n\nLa dernière capture a été prise après vérification que le service Erigon est actif, que `eth_syncing=false`, que le bloc courant est non nul et que son horodatage est à moins de cinq minutes de l’heure du VPS. Erigon intègre Caplin pour le consensus; les journaux de checkpoint et Caplin sont conservés avec le relevé. Le volume `/data` fait environ 984 Go et le client utilise le mode minimal.\n",
         encoding="utf-8")
     subprocess.run([sys.executable, str(ROOT / "scripts" / "build_report_pdf.py")], check=True, cwd=ROOT)
     subprocess.run(["git", "add", ".sync-complete", "EVIDENCE.md", "RAPPORT-ETHEREUM.pdf", "screenshots/04-synchronisation.png"], check=True, cwd=ROOT)
@@ -84,6 +83,7 @@ def main():
         try:
             client = watch_sync.connect(config)
             status = read_status(client)
+            STATUS_FILE.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
             log(json.dumps(status, ensure_ascii=False))
             if fully_synced(status):
                 capture_and_publish()

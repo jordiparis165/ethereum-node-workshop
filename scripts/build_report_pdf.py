@@ -1,4 +1,7 @@
+import json
+import re
 from datetime import datetime
+from html import escape
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -14,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SHOTS = ROOT / "screenshots"
 OUT = ROOT / "RAPPORT-ETHEREUM.pdf"
 SYNC_MARKER = ROOT / ".sync-complete"
+STATUS_FILE = ROOT / "sync-status.json"
 
 
 def footer(canvas, doc):
@@ -38,6 +42,37 @@ def add_screenshot(story, filename, caption, styles):
     story.extend([image, Spacer(1, 2 * mm), Paragraph(caption, styles["Caption"]), Spacer(1, 5 * mm)])
 
 
+def sync_summary():
+    if SYNC_MARKER.exists():
+        checked_at = escape(SYNC_MARKER.read_text(encoding="utf-8").strip())
+        return ("Le dernier contrôle a confirmé `eth_syncing=false`, un bloc courant non nul "
+                "et une tête récente. Caplin est intégré à Erigon; son checkpoint de consensus "
+                f"a été chargé avant le suivi de la tête. Vérification faite le {checked_at}.")
+
+    if STATUS_FILE.exists():
+        try:
+            status = json.loads(STATUS_FILE.read_text(encoding="utf-8"))
+            syncing = status.get("eth_syncing")
+            progress = status.get("progress", [])
+            snapshot = next((line for line in reversed(progress) if "Syncing snapshots" in line), None)
+            line = snapshot or (progress[-1] if progress else "")
+            line = re.sub(r"^.*?\[Downloader\] ", "", line)
+            if isinstance(syncing, dict):
+                current = int(syncing.get("currentBlock", "0x0"), 16)
+                highest = int(syncing.get("highestBlock", "0x0"), 16)
+                rpc_progress = f"Le RPC indique le bloc {current:,} sur la cible {highest:,}."
+            else:
+                rpc_progress = "Le RPC indique que la synchronisation continue."
+            detail = f" Dernier journal Erigon : {escape(line)}." if line else ""
+            free = int(status.get("disk_free_bytes", 0))
+            free_text = f" Il restait environ {free / (1024**3):.0f} Gio libres sur `/data`." if free else ""
+            return ("Au dernier relevé, le nœud n’était pas encore synchronisé. " + rpc_progress +
+                    detail + free_text + " Caplin est le client de consensus intégré à Erigon.")
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            pass
+    return "La synchronisation est en cours. Je ne la considère terminée que lorsque les RPC et le bloc de tête la confirment."
+
+
 def main():
     fonts = Path("C:/Windows/Fonts")
     pdfmetrics.registerFont(TTFont("ArialUnicode", str(fonts / "arial.ttf")))
@@ -50,25 +85,22 @@ def main():
 
     doc = SimpleDocTemplate(str(OUT), pagesize=A4, rightMargin=18*mm, leftMargin=18*mm, topMargin=17*mm, bottomMargin=21*mm, title="Déploiement d’un nœud Ethereum", author="Jordi PARIS")
     story = [Paragraph("Déploiement d’un nœud Ethereum", styles["ReportTitle"])]
-    story += [Paragraph("Pour ce TD, j’ai installé un nœud Ethereum mainnet sur le VPS de l’école. J’ai choisi Geth pour l’exécution et Lighthouse pour le consensus. J’ai compilé les deux clients depuis leurs dépôts officiels, sans Docker ni binaires précompilés.", styles["FR"]), Paragraph("Préparation et compilation", styles["Section"]), Paragraph("La VM tourne sous Debian 13, avec 8 vCPU et 22 Gio de mémoire. J’ai installé Git, Go, Rust, les compilateurs C/C++, Clang, CMake, Protobuf et les bibliothèques nécessaires. La version de Rust fournie par Debian ne convenait pas à Lighthouse v8.3.2 ; j’ai donc installé le toolchain stable avec rustup. Geth v1.17.10 a été compilé avec make geth et Lighthouse v8.3.2 avec make.", styles["FR"])]
-    add_screenshot(story, "01-compilation.png", "Versions des deux clients compilés, affichées dans le terminal après une connexion SSH au VPS.", styles)
+    story.append(Paragraph("J’ai d’abord lancé Geth avec Lighthouse, compilés depuis leurs sources. Comme l’estimation de synchronisation dépassait le temps restant, j’ai suivi le conseil du professeur et compilé Erigon v3.8.1. La configuration active utilise Erigon avec Caplin, son client de consensus intégré.", styles["FR"]))
 
-    story += [Paragraph("Configuration et services", styles["Section"]), Paragraph("Geth est configuré sur mainnet en mode snap. Les API HTTP et WebSocket utilisent les ports 8545 et 8546, avec les espaces de noms eth, net et web3. L’Engine API écoute seulement en local sur 8551 et utilise un secret JWT partagé avec Lighthouse. L’API Beacon de Lighthouse écoute sur 5052. Les deux services systemd sont activés au démarrage.", styles["FR"])]
-    add_screenshot(story, "02-services.png", "Ressources de la VM, espace disque et ports en écoute au moment du contrôle.", styles)
+    story += [Paragraph("Préparation et compilation", styles["Section"]), Paragraph("Le VPS a 8 vCPU, 22 Gio de mémoire et un volume `/data` de 984 Go. Geth et Lighthouse avaient été compilés et testés au début. Erigon v3.8.1 a ensuite été compilé depuis le tag officiel avec Go 1.26.10 et `make erigon`. Le Go système (1.24.4) était trop ancien; son mécanisme de sélection automatique a planté, donc j’ai appelé directement le toolchain téléchargé dans le cache Go. Aucun binaire Erigon précompilé n’a été utilisé.", styles["FR"])]
+    add_screenshot(story, "01-compilation.png", "Versions des clients compilés affichées dans le terminal après connexion SSH au VPS.", styles)
 
-    story += [Paragraph("Tests", styles["Section"]), Paragraph("J’ai interrogé les RPC directement sur le VPS. eth_chainId répond 0x1, ce qui confirme le réseau mainnet. Geth répond aussi avec sa version et un nombre de pairs non nul. L’API Beacon renvoie la version de Lighthouse. Par contre, le numéro de bloc était encore à 0x0 au moment de la capture.", styles["FR"])]
-    add_screenshot(story, "03-rpc.png", "Quelques appels RPC et la réponse de l’API Beacon.", styles)
+    story += [Paragraph("Configuration et services", styles["Section"]), Paragraph("Erigon est sur mainnet, en mode de pruning minimal, avec Caplin intégré. Le service `erigon.service` est activé par systemd. Les API HTTP et WebSocket écoutent sur 8545 et 8546 et n’exposent que `eth`, `net` et `web3`. Les métriques restent locales sur 6061. L’API Engine n’est pas ouverte au réseau. Les services Geth et Lighthouse sont arrêtés mais leurs bases sont conservées pour pouvoir revenir en arrière.", styles["FR"])]
+    add_screenshot(story, "02-services.png", "État des services, ressources de la VM, stockage et ports RPC en écoute.", styles)
 
-    story += [Paragraph("Synchronisation", styles["Section"])]
-    if SYNC_MARKER.exists():
-        checked_at = SYNC_MARKER.read_text(encoding="utf-8").strip()
-        story.append(Paragraph(f"Un contrôle ultérieur a confirmé que Geth ne synchronisait plus, que son numéro de bloc était non nul et que Lighthouse n’était plus en mode optimiste. Les deux clients étaient synchronisés lors de la capture du {checked_at}.", styles["FR"]))
-    else:
-        story.append(Paragraph("Au dernier relevé, la synchronisation n’était pas finie. Lighthouse indiquait encore une tête optimiste et Geth renvoyait un numéro de bloc à 0x0, tout en téléchargeant des headers. Le fait que Lighthouse ne soit plus en train de synchroniser ses slots ne suffit pas à dire que tout le nœud est prêt.", styles["FR"]))
-    add_screenshot(story, "04-synchronisation.png", "État retourné par les clients au moment du relevé. La date et l’heure de la capture apparaissent dans la barre des tâches.", styles)
+    story += [Paragraph("Tests", styles["Section"]), Paragraph("Les appels RPC sont faits directement sur la VM. `eth_chainId` doit répondre `0x1` pour Ethereum mainnet; `web3_clientVersion` identifie le client, et `net_peerCount` permet de vérifier les connexions P2P. Une réponse RPC seule ne prouve pas que la synchronisation est terminée, donc j’ai aussi contrôlé `eth_syncing` et le bloc de tête.", styles["FR"])]
+    add_screenshot(story, "03-rpc.png", "Résultats réels des requêtes JSON-RPC exécutées sur le VPS.", styles)
 
-    story += [Paragraph("Stockage et bilan", styles["Section"]), Paragraph("Le sujet demande 2 To de stockage, mais le volume /data de cette VM fait environ 984 Go. Au dernier contrôle, il restait environ 961 Go libres. C’est une limite importante de la machine et je ne peux pas la corriger depuis la configuration du nœud. Les deux clients sont installés, compilés et lancés, et les endpoints ont répondu aux tests. Pour la synchronisation complète, je m’en tiens à ce que montrent les réponses réelles des clients.", styles["FR"])]
-    story.append(Paragraph(f"Relevés et captures préparés le {datetime.now().strftime('%d/%m/%Y')}.", styles["Caption"]))
+    story += [Paragraph("Synchronisation", styles["Section"]), Paragraph(sync_summary(), styles["FR"])]
+    add_screenshot(story, "04-synchronisation.png", "État retourné par Erigon et journaux de téléchargement/consensus lors du contrôle.", styles)
+
+    story += [Paragraph("Stockage et bilan", styles["Section"]), Paragraph("Le sujet mentionne 2 To, puis le professeur a indiqué le 30 octobre qu’un VPS de 1 To devait suffire. Le volume `/data` fait 984 Go. Le mode minimal d’Erigon est choisi pour respecter cette contrainte; les données Geth et Lighthouse déjà présentes sont conservées, ce qui réduit l’espace disponible pendant le téléchargement. La doc Erigon recommande un SSD/NVMe, alors que le disque de cette VM apparaît rotatif. Le temps de synchronisation mesuré sur une machine NVMe ne peut donc pas être promis ici. Je m’en tiens aux sorties réelles des RPC et des journaux pour dire si le nœud est prêt.", styles["FR"])]
+    story.append(Paragraph(f"Rapport mis à jour le {datetime.now().strftime('%d/%m/%Y')} à partir des contrôles du VPS.", styles["Caption"]))
 
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     print(OUT)

@@ -1,64 +1,43 @@
 # Nœud Ethereum
 
-Pour ce TD, j’ai installé un nœud Ethereum mainnet sur le VPS de l’école. J’ai utilisé Geth pour l’exécution et Lighthouse pour le consensus. J’ai compilé les deux à partir de leurs dépôts officiels, sans Docker.
+Pour ce TD, j’ai d’abord installé Geth avec Lighthouse. La synchronisation avançait, mais les estimations de Geth dépassaient le délai du rendu. Après le conseil du prof, j’ai compilé Erigon depuis ses sources et je l’utilise maintenant avec Caplin, son client de consensus intégré. Les anciennes bases Geth et Lighthouse sont gardées sur le VPS, mais leurs services sont arrêtés.
 
 ## La VM
 
-La machine a 8 vCPU et 22 Gio de mémoire. Le disque `/data` fait environ 1 To. Le sujet en demande 2 To, donc il manque de la place par rapport au prérequis. Je le signale dans le compte rendu.
+Le VPS a 8 vCPU, 22 Gio de RAM et un volume `/data` de 984 Go. Le sujet indique 2 To, mais le prof a précisé le 30 octobre que 1 To devrait suffire. Erigon tourne en mode minimal, prévu pour tenir dans cette capacité. La machine a assez de mémoire pour démarrer, mais son disque est rotatif et plus lent que le NVMe utilisé dans les mesures officielles d’Erigon.
 
-## Installation et compilation
+## Compilation
 
-J’ai installé les outils de compilation avec apt. Pour Geth, il faut Go et les outils C/C++. Lighthouse demande aussi Rust, CMake, Clang et Protobuf. La version de Rust fournie avec Debian était trop vieille ; j’ai installé la version stable avec rustup.
-
-Sur Debian, la base des dépendances était :
+J’ai gardé les builds Geth et Lighthouse faits au début, puis j’ai compilé Erigon v3.8.1 depuis le tag officiel. Erigon demande Go 1.26 ou plus récent; la version système était 1.24.4. Le lanceur automatique de Go a planté au début, alors j’ai utilisé directement le toolchain Go 1.26.10 téléchargé dans le cache Go.
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y git golang-go build-essential clang libclang-dev \
-  pkg-config libssl-dev protobuf-compiler jq curl cmake ninja-build
+git clone --depth 1 --branch v3.8.1 \
+  https://github.com/erigontech/erigon.git /data/ethereum-src/erigon-v3.8.1
+cd /data/ethereum-src/erigon-v3.8.1
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-source "$HOME/.cargo/env"
+GOROOT="$HOME/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.10.linux-amd64"
+export GOROOT
+export PATH="$GOROOT/bin:$PATH"
+export GOTOOLCHAIN=local
+GOMAXPROCS=6 make erigon
 ```
 
-Les commandes principales que j’ai utilisées :
-
-```bash
-git clone --depth 1 --branch v1.17.10 \
-  https://github.com/ethereum/go-ethereum.git /data/ethereum-src/geth-src
-cd /data/ethereum-src/geth-src
-make geth
-
-git clone --depth 1 --branch v8.3.2 \
-  https://github.com/sigp/lighthouse.git /data/ethereum-src/lighthouse-src
-cd /data/ethereum-src/lighthouse-src
-make
-```
+Le binaire compilé est `build/bin/erigon`. Erigon lance Caplin dans le même processus, donc il n’y a pas de service Lighthouse séparé dans la configuration finale. Caplin télécharge son checkpoint de consensus puis suit la chaîne avec Erigon.
 
 ## Configuration
 
-Geth est sur mainnet en mode snap. Le RPC HTTP utilise le port `8545`, le WebSocket `8546` et l’Engine API `8551`. L’Engine API reste accessible seulement en local et est protégée par le secret JWT partagé avec Lighthouse.
+Le service [`configs/erigon.service`](configs/erigon.service) démarre Erigon sur mainnet en mode `minimal`. Il est activé avec systemd. Les endpoints RPC HTTP et WebSocket utilisent les ports `8545` et `8546`, avec seulement les namespaces `eth`, `net` et `web3`. Les métriques restent locales sur `6061`. Le port Engine API ne sert pas à une connexion externe; Caplin est intégré.
 
-Lighthouse utilise aussi mainnet. Son API Beacon écoute sur `5052` et les métriques sur `5054`. Les deux clients sont lancés par systemd et configurés pour démarrer avec la VM. Les fichiers de service sont dans [`configs/`](configs/). Le secret JWT n’est pas dans ce dépôt.
+Le fichier [`configs/99-erigon.conf`](configs/99-erigon.conf) règle `vm.overcommit_memory` et `vm.max_map_count`, comme recommandé au démarrage par Erigon. Le dossier Geth reste dans `/data/ethereum/geth` et celui de Lighthouse dans `/data/ethereum/lighthouse`, en cas de retour arrière.
 
 ## Vérifications
 
-J’ai utilisé [`scripts/check-node.sh`](scripts/check-node.sh) pour vérifier les services, le réseau, les ports et les réponses RPC. Pour interroger Geth directement depuis le VPS :
+Le script [`scripts/check-node.sh`](scripts/check-node.sh) vérifie les services, les ports et quelques requêtes RPC. Sur mainnet, `eth_chainId` doit renvoyer `0x1`. Pour savoir si la synchronisation est finie, il faut aussi vérifier `eth_syncing` et le bloc courant; un endpoint qui répond ne suffit pas à prouver que le nœud est synchronisé.
 
-```bash
-curl -H 'Content-Type: application/json' \
-  --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
-  http://127.0.0.1:8545
-```
+Le script `scripts/watch_until_synced.py` refait ces contrôles toutes les minutes. Il ne publiera les preuves de synchronisation terminée que si `eth_syncing` vaut `false`, si le bloc courant est non nul et si son horodatage est récent. Les captures du dossier [`screenshots/`](screenshots/) sont faites depuis un vrai terminal Windows connecté au VPS par SSH.
 
-Sur mainnet, `eth_chainId` doit répondre `0x1`. Les captures dans [`screenshots/`](screenshots/) montrent les versions des clients, les ports, les tests RPC et le relevé de synchronisation fait sur la VM.
+## Limites
 
-## Où en est la synchronisation ?
-
-Au dernier relevé, Geth n’avait pas encore de bloc courant et Lighthouse indiquait que sa tête était optimiste. Le nœud n’était donc pas complètement synchronisé à ce moment-là. Le script de surveillance mis à disposition dans `scripts/` refait le contrôle périodiquement et met à jour les preuves si les deux clients finissent par être synchronisés.
-
-Le volume actuel est inférieur aux 2 To demandés. C’est la limite principale de cette VM pour ce TD.
-
-## Compte rendu
+Les temps annoncés dans les docs Erigon ont été mesurés sur une machine plus puissante, avec NVMe et beaucoup plus de RAM. Ils ne garantissent pas la même durée sur ce VPS. Le mode minimal économise l’espace, mais garde moins d’historique qu’un nœud complet configuré avec le mode `full`. Je laisse donc le rapport s’appuyer sur l’état réellement retourné par les clients, pas sur une estimation.
 
 Le compte rendu avec les captures est dans [`RAPPORT-ETHEREUM.pdf`](RAPPORT-ETHEREUM.pdf).

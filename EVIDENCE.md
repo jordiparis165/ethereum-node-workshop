@@ -1,19 +1,14 @@
 # Vérifications et preuves
 
-Les quatre images du dossier `screenshots/` sont des captures natives de l’écran Windows avec Windows Terminal au premier plan. Les commandes affichées ont interrogé le VPS de l’école par SSH à l’aide des identifiants locaux de `btc/.env` ; aucun secret n’est imprimé dans les captures.
+Les images dans `screenshots/` sont des captures natives de l’écran Windows avec un terminal ouvert sur les sorties SSH du VPS. Aucun mot de passe ni secret JWT n’apparaît.
 
-Captures prises le 29 octobre 2026 vers 23 h 39–23 h 40 (heure locale) :
+Captures prises le 30 octobre 2026 :
 
-- `01-compilation.png` : versions des exécutables Geth et Lighthouse présents sur la VM.
-- `02-services.png` : ressources, stockage et sockets en écoute.
-- `03-rpc.png` : appels JSON-RPC et version de l’API Beacon.
-- `04-synchronisation.png` : statuts retournés par Lighthouse et Geth et derniers journaux.
+- `01-compilation.png` : versions d’Erigon v3.8.1, Geth et Lighthouse compilés depuis leurs sources.
+- `02-services.png` : Erigon actif et activé avec systemd; Geth et Lighthouse arrêtés et désactivés; RAM, volume, réglages noyau et sockets.
+- `03-rpc.png` : `eth_chainId=0x1`, version Erigon, pairs et réponse de `eth_syncing`.
+- `04-synchronisation.png` : journaux réels d’Erigon et Caplin pendant le téléchargement des snapshots.
 
-Constats visibles dans les preuves :
+Au relevé visible dans la dernière capture, Erigon téléchargeait les snapshots (environ 7,63 %, soit 43,2 Go sur 566,1 Go). Caplin avait démarré et annoncé 127 pairs. `eth_blockNumber` était encore à `0x0` et `eth_syncing` continuait à renvoyer un objet de progression : le nœud n’était donc pas synchronisé.
 
-- `eth_chainId` renvoie `0x1` et Geth a des pairs.
-- `eth_blockNumber` renvoie encore `0x0` et `eth_syncing` indique un bloc courant à zéro.
-- Lighthouse indique `is_optimistic=true`.
-- Le volume `/data` est d’environ 984 Go, inférieur aux 2 To demandés.
-
-Le nœud n’était donc pas complètement synchronisé au moment de ces captures. Les ETA de journaux sont indicatives et ne prouvent pas la fin de la synchronisation.
+Le volume `/data` fait 984 Go et il restait environ 679 Go libres à ce relevé. Les anciennes données Geth et Lighthouse sont gardées sur le disque. Le suivi local interroge Erigon chaque minute et ne marque la synchronisation comme terminée qu’après `eth_syncing=false`, un bloc non nul et un horodatage de tête récent.

@@ -4,3 +4,4 @@
 *.jwt
 screenshots/private/
 sync-watch.log
+sync-status.json
