@@ -1,0 +1,76 @@
+{
+  "observed_at": "2026-10-31T10:52:43.797958+00:00",
+  "windows": [
+    {
+      "label": "before_tuning",
+      "seconds": 279.252169,
+      "MiB_per_second": 22.73,
+      "first": {
+        "observed_at": "2026-10-31T10:40:25.084791+00:00",
+        "phase": "copying",
+        "copied_bytes": 24919605672,
+        "total_bytes": 146288510481,
+        "current_file": "v2.0-storage.8192-8448.kv"
+      },
+      "last": {
+        "observed_at": "2026-10-31T10:45:04.336960+00:00",
+        "phase": "copying",
+        "copied_bytes": 31576155701,
+        "total_bytes": 146288510481,
+        "current_file": "v2.0-storage.9216-9472.kv"
+      }
+    },
+    {
+      "label": "first_tuning",
+      "seconds": 187.54691,
+      "MiB_per_second": 37.72,
+      "first": {
+        "observed_at": "2026-10-31T10:45:35.156447+00:00",
+        "phase": "copying",
+        "copied_bytes": 32364684853,
+        "total_bytes": 146288510481,
+        "current_file": "v2.0-storage.9216-9472.kv"
+      },
+      "last": {
+        "observed_at": "2026-10-31T10:48:42.703357+00:00",
+        "phase": "copying",
+        "copied_bytes": 39782337742,
+        "total_bytes": 146288510481,
+        "current_file": "v2.1-commitment.0-8192.kvi"
+      }
+    },
+    {
+      "label": "larger_readahead",
+      "seconds": 208.808442,
+      "MiB_per_second": 65.17,
+      "first": {
+        "observed_at": "2026-10-31T10:49:12.831291+00:00",
+        "phase": "copying",
+        "copied_bytes": 41124515022,
+        "total_bytes": 146288510481,
+        "current_file": "v2.1-commitment.0-8192.kvi"
+      },
+      "last": {
+        "observed_at": "2026-10-31T10:52:41.639733+00:00",
+        "phase": "copying",
+        "copied_bytes": 55393970327,
+        "total_bytes": 146288510481,
+        "current_file": "v2.0-code.0-8192.kv"
+      }
+    }
+  ],
+  "note": "Observed transfer rates across different files, not a controlled benchmark or a node synchronization ETA.",
+  "migration": {
+    "observed_at": "2026-10-31T10:52:41.639733+00:00",
+    "phase": "copying",
+    "copied_bytes": 55393970327,
+    "total_bytes": 146288510481,
+    "current_file": "v2.0-code.0-8192.kv"
+  },
+  "tuning": {
+    "observed_at": "2026-10-31T10:51:25.649341+00:00",
+    "phase": "temporary_tuning_active",
+    "original_read_ahead_kb": 128,
+    "read_ahead_kb": 16384
+  }
+}

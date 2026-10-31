@@ -75,6 +75,10 @@ La copie est encore en cours au moment de cette mise à jour : le gain de débit
 
 La répartition entre volumes suit le principe décrit dans la [documentation Erigon sur le stockage](https://docs.erigon.tech/fundamentals/optimizing-storage); la conservation des index en RAM vient des [réglages de performance](https://docs.erigon.tech/fundamentals/performance-tricks).
 
+Vers 11 h 45, j'ai aussi ajusté temporairement la copie : plafond de cache passé de 2 à 8 Gio, prélecture du volume de 128 Kio à 4 Mio puis 16 Mio. Les débits observés sont passés d'environ 23 Mio/s avant réglage à 38 Mio/s, puis 65 Mio/s sur une fenêtre d'environ trois minutes. Les fichiers diffèrent selon les fenêtres : ce sont des observations de transfert, pas un benchmark contrôlé ni un délai de synchronisation. Le relevé est dans [`evidence/2026-10-31-copy-speed.json`](evidence/2026-10-31-copy-speed.json).
+
+Le service temporaire `ethereum-copy-tuning` exécute [`scripts/tune-storage-copy.py`](scripts/tune-storage-copy.py). Il remet les paramètres d'origine dès que la copie de la base commence, avant qu'Erigon rouvre les fichiers pour ses lectures aléatoires. Les tests vérifient aussi la restauration après interruption. Les cinq tests de migration et de réglage ont passé sur Linux.
+
 Les temps annoncés dans les docs Erigon ont été mesurés sur une machine plus puissante, avec NVMe et beaucoup plus de RAM. Ils ne garantissent pas la même durée sur ce VPS. Le mode minimal économise l’espace, mais garde moins d’historique qu’un nœud complet configuré avec le mode `full`. Je laisse donc le rapport s’appuyer sur l’état réellement retourné par les clients, pas sur une estimation.
 
 Le compte rendu avec les captures est dans [`RAPPORT-ETHEREUM.pdf`](RAPPORT-ETHEREUM.pdf).
