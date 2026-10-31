@@ -132,6 +132,8 @@ def main():
     story += [Paragraph("Stockage et bilan", styles["Section"]), Paragraph("Le sujet mentionne 2 To, puis le professeur a indiqué le 30 octobre qu’un VPS de 1 To devait suffire. Le volume `/data` fait 984 Go. Le mode minimal d’Erigon est choisi pour respecter cette contrainte; les données Geth et Lighthouse déjà présentes sont conservées, ce qui réduit l’espace disponible pendant le téléchargement. La doc Erigon recommande un SSD/NVMe, alors que le disque de cette VM apparaît rotatif. Le temps de synchronisation mesuré sur une machine NVMe ne peut donc pas être promis ici. Je m’en tiens aux sorties réelles des RPC et des journaux pour dire si le nœud est prêt.", styles["FR"])]
     story.append(Paragraph(f"Rapport mis à jour le {datetime.now().strftime('%d/%m/%Y')} à partir des contrôles du VPS.", styles["Caption"]))
 
+    story.append(Paragraph("Dernier point stockage : la bascule a terminé le 31 octobre à 12 h 15. Erigon et le cache d'index ont redémarré; les chemins de chaindata et des snapshots pointent vers le disque système. Il reste environ 41 Gio sur ce volume et 153 Gio sur /data. La prélecture temporaire est revenue à 128 Kio. Ce redémarrage ne prouve pas encore la fin de synchronisation : il faut attendre les nouvelles têtes validées et le contrôle RPC final.", styles["FR"]))
+    add_screenshot(story, "07-stockage-active.png", "Bascule terminée : service actif et chemins réels vers le volume rapide, relevés par SSH après la relance.", styles)
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     print(OUT)
 

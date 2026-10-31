@@ -85,6 +85,8 @@ J'ai ensuite relu les journaux de 02 h 25 : `Got interrupt, shutting down` appar
 
 Le suivi systemd calcule maintenant un champ `forecast` dans `/data/ethereum-monitor/latest.json`, avec l'échéance du rendu fixée au 31 octobre à 23 h 59 (Paris). Pendant la préparation, il ne donne qu'une estimation de transfert, séparée de la fin du nœud. Après la relance, il attend des blocs validés et mesure la diminution du retard de leur horodatage. Il ignore les anciennes mesures prises avant la migration. Son estimation reste conditionnelle au débit observé; seule la vérification RPC confirme la fin. Les douze tests de migration, de restauration et de calcul d'estimation ont passé sur Linux.
 
+La bascule a terminé à 12 h 15 : Erigon et le cache d'index sont actifs sur les nouveaux chemins. La prélecture du volume lent est revenue à 128 Kio. Il reste environ 41 Gio sur le disque système et 153 Gio sur `/data`. Le redémarrage du client ne signifie pas que le rattrapage est terminé; le suivi attend les nouvelles têtes validées pour estimer la suite.
+
 Les temps annoncés dans les docs Erigon ont été mesurés sur une machine plus puissante, avec NVMe et beaucoup plus de RAM. Ils ne garantissent pas la même durée sur ce VPS. Le mode minimal économise l’espace, mais garde moins d’historique qu’un nœud complet configuré avec le mode `full`. Je laisse donc le rapport s’appuyer sur l’état réellement retourné par les clients, pas sur une estimation.
 
 Le compte rendu avec les captures est dans [`RAPPORT-ETHEREUM.pdf`](RAPPORT-ETHEREUM.pdf).

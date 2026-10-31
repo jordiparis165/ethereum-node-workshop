@@ -20,7 +20,9 @@ print('status recorded UTC =', s['observed_at'])
 print('copy progress GiB =', round(s['copied_bytes']/1024**3,2), '/', round(s['total_bytes']/1024**3,2))
 print('current file =', s.get('current_file','-'))
 print('Copy progress is NOT Ethereum synchronization progress.')
-print('Erigon is paused cleanly during staging; originals are retained.')
+print('Node restarted on fast storage; originals retained.' if s['phase']=='activated' else 'Erigon is paused cleanly during staging; originals are retained.')
+for name in ('chaindata', 'snapshots/domain', 'caplin/indexing'):
+ print(name, '->', Path('/data/erigon',name).resolve())
 print('Fast-volume free GiB =', round(shutil.disk_usage('/var/lib/erigon-hot').free/1024**3,2))
 PY""",
     "build": r"""echo '$ Erigon v3.8.1 (source build)'; /data/ethereum-src/erigon-v3.8.1/build/bin/erigon --version; echo '$ Previous Geth/Lighthouse source builds'; /data/ethereum-src/geth-src/build/bin/geth version | head -3; /home/adm-mesifi/.cargo/bin/lighthouse --version""",

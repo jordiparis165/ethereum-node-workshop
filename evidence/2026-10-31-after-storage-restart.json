@@ -1,0 +1,38 @@
+{
+  "observed_at": "2026-10-31T11:16:56.966574+00:00",
+  "eth_syncing": false,
+  "block": "0x1915a17",
+  "head_age_seconds": 113073,
+  "rpc_error": null,
+  "service": "active",
+  "progress": [
+    "Oct 31 12:16:19 vps-ae86b6b8 erigon[3770616]: [INFO] [10-31|12:16:19.315] [OtterSync] Starting Ottersync"
+  ],
+  "caplin": [
+    "Oct 31 12:16:21 vps-ae86b6b8 erigon[3770616]: [INFO] [10-31|12:16:21.792] [Checkpoint Sync] Resuming from local finalized state slot=15548736",
+    "Oct 31 12:16:22 vps-ae86b6b8 erigon[3770616]: [INFO] [10-31|12:16:22.249] Starting caplin",
+    "Oct 31 12:16:27 vps-ae86b6b8 erigon[3770616]: [INFO] [10-31|12:16:27.383] [Caplin] Discovery address is unspecified, using detected outbound IP for ENR. Set --caplin.discovery.addr explicitly to override app=caplin detected=51.254.216.222",
+    "Oct 31 12:16:27 vps-ae86b6b8 erigon[3770616]: [INFO] [10-31|12:16:27.422] [Caplin] P2P networking started          app=caplin tcp_port=4001 quic_enabled=true quic_port=4002 enr_quic=51.254.216.222:4002 advertised_addrs=\"[/ip4/51.254.216.222/tcp/4001 /ip4/51.254.216.222/udp/4002/quic-v1 /ip4/127.0.0.1/tcp/4001 /ip4/127.0.0.1/udp/4002/quic-v1]\"",
+    "Oct 31 12:16:27 vps-ae86b6b8 erigon[3770616]: [INFO] [10-31|12:16:27.451] [Caplin] starting clstages loop          app=caplin"
+  ],
+  "errors": [],
+  "storage_migration": {
+    "observed_at": "2026-10-31T11:15:23.140141+00:00",
+    "phase": "activated",
+    "copied_bytes": 146287482385,
+    "total_bytes": 146288510481,
+    "note": "Originals preserved; monitor RPC for verified progress and final sync"
+  },
+  "forecast": {
+    "observed_at": "2026-10-31T11:15:17.249381+00:00",
+    "deadline": "2026-10-31T23:59:00+01:00",
+    "seconds_until_deadline": 42222.750619,
+    "eta_seconds": null,
+    "on_track_estimate": null,
+    "copy_rate_bytes_per_second": 15739344,
+    "copy_eta_seconds": 27,
+    "copy_eta_caveat": "Transfer only; verification, startup and chain catch-up are additional.",
+    "state": "storage_preparation"
+  },
+  "disk_free_bytes": 163117985792
+}
