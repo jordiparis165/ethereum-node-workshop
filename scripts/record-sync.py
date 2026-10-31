@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from sync_forecast import forecast
+from sync_activity import collect_activity, activity_state
 
 ROOT = Path(__file__).resolve().parent
 
@@ -29,6 +30,14 @@ def rpc(method, params=None):
 
 def record():
     status = {"observed_at": datetime.now(timezone.utc).isoformat(), "fully_synced": False}
+    try:
+        previous = json.loads((ROOT / 'latest.json').read_text())
+    except (OSError, ValueError):
+        previous = None
+    try:
+        status['activity'] = collect_activity()
+    except Exception as exc:
+        status['activity_check_error'] = f'{type(exc).__name__}: {exc}'
     try:
         migration = Path("/var/lib/erigon-hot/migration-status.json")
         if migration.exists():
@@ -66,6 +75,14 @@ def record():
         )
     except Exception as exc:
         status["check_error"] = f"{type(exc).__name__}: {exc}"
+    status['activity_state'] = activity_state(status, previous)
+    status['warnings'] = []
+    for field in ('fast_disk_free_bytes', 'disk_free_bytes'):
+        if field in status and status[field] < 15 * 1024**3:
+            status['warnings'].append(f'Low disk reserve: {field}')
+    available = ((status.get('activity') or {}).get('memory_bytes') or {}).get('MemAvailable')
+    if available is not None and available < 1024**3:
+        status['warnings'].append('Less than 1 GiB available RAM')
     deadline = os.environ.get("ETHEREUM_DEADLINE")
     if deadline:
         history = []

@@ -90,3 +90,11 @@ La bascule a terminé à 12 h 15 : Erigon et le cache d'index sont actifs sur le
 Les temps annoncés dans les docs Erigon ont été mesurés sur une machine plus puissante, avec NVMe et beaucoup plus de RAM. Ils ne garantissent pas la même durée sur ce VPS. Le mode minimal économise l’espace, mais garde moins d’historique qu’un nœud complet configuré avec le mode `full`. Je laisse donc le rapport s’appuyer sur l’état réellement retourné par les clients, pas sur une estimation.
 
 Le compte rendu avec les captures est dans [`RAPPORT-ETHEREUM.pdf`](RAPPORT-ETHEREUM.pdf).
+
+## Attente du calcul d'état vers 14 h 30
+
+Le compteur est resté au bloc 26 304 908 pendant plusieurs minutes. Le journal détaillé explique cette attente : à 14:30:31, `[commitment] processed` indique 383 500 clés traitées en 12 min 08 s. L'exécution a ensuite repris, avant le réglage mémoire ci-dessous. Les lectures du processus et les attentes `filemap_fault` montrent une forte activité disque, pas la preuve d'un deadlock. Le suivi ne redémarre donc pas le client simplement parce que son numéro de bloc reste fixe.
+
+À 14 h 31, j'ai arrêté puis désactivé le service optionnel `ethereum-index-cache`, sans arrêter Erigon. Les index sont maintenant sur le disque rapide : les garder verrouillés occupait environ 3 Gio qui ne pouvaient pas servir au cache des données du disque lent. La RAM disponible est passée d'environ 5 à 8 Go au moment du changement. Les index ne sont ni supprimés ni désactivés dans Erigon; seul leur verrouillage en RAM est retiré. Cela ne démontre pas encore une accélération de la synchronisation complète.
+
+Le module `scripts/sync_activity.py`, appelé par le timer existant, enregistre aussi les lectures du processus, son activité CPU, la RAM disponible et le dernier calcul de commitment détaillé. Il distingue une tête RPC inchangée avec des lectures disque d'un échantillon sans activité. Les réserves disque inférieures à 15 Gio et la RAM disponible inférieure à 1 Gio sont signalées dans `warnings`. Ce sont des diagnostics, pas un régulateur qui garantit une vitesse maximale ou un redémarrage automatique. Les cinq nouveaux tests passent sur la VM. Le PC passe 15 tests et en ignore deux réservés à Linux.

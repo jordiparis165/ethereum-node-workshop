@@ -134,6 +134,8 @@ def main():
 
     story.append(Paragraph("Dernier point stockage : la bascule a terminé le 31 octobre à 12 h 15. Erigon et le cache d'index ont redémarré; les chemins de chaindata et des snapshots pointent vers le disque système. Il reste environ 41 Gio sur ce volume et 153 Gio sur /data. La prélecture temporaire est revenue à 128 Kio. Ce redémarrage ne prouve pas encore la fin de synchronisation : il faut attendre les nouvelles têtes validées et le contrôle RPC final.", styles["FR"]))
     add_screenshot(story, "07-stockage-active.png", "Bascule terminée : service actif et chemins réels vers le volume rapide, relevés par SSH après la relance.", styles)
+    story.append(Paragraph("Vers 14 h 30, le compteur est resté au bloc 26 304 908. Le journal détaillé montre un calcul de commitment de 383 500 clés en 12 min 08 s, puis une reprise. Ce n'était donc pas la preuve d'un blocage complet. À 14 h 31, j'ai retiré le verrouillage en RAM des index désormais sur le disque rapide : environ 3 Gio redeviennent utilisables pour le cache du volume lent. Erigon n'a pas redémarré. La reprise avait commencé avant ce réglage, donc je ne lui attribue pas cette reprise et je ne peux pas encore chiffrer son gain. Le timer surveille maintenant l'activité disque et CPU, le dernier calcul d'état et les réserves mémoire/disque, sans redémarrage automatique. Les cinq nouveaux tests ont passé sur la VM.", styles["FR"]))
+    add_screenshot(story, "08-reprise-execution.png", "Contrôle réel après l'attente : l'exécution a repris, mais la tête RPC n'est pas encore à jour avec mainnet.", styles)
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     print(OUT)
 

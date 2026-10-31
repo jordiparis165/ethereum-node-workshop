@@ -1,0 +1,8 @@
+[DBUG] [10-31|14:30:31.211] [commitment] processed                   block=26304902 txNum=3872371108 keys=383.50k keys/s=526 mode=hex-parallel-patricia-hashed bufmode=parallel spent=12m7.877411186s rootHash=af785f904f30b87835abb7a2180364bd2a03133746640e2b7e618c6b67a61530
+[DBUG] [10-31|14:33:36.713] [commitment] processed                   block=26304982 txNum=3872392715 keys=1.24k keys/s=15.49k mode=hex-parallel-patricia-hashed bufmode=parallel spent=80.360436ms rootHash=4e0f7a8c8b748e780086240c083f3952106720939578bd7fd632d370691213da
+[DBUG] [10-31|14:33:38.645] [commitment] processed                   block=26304983 txNum=3872393054 keys=1.55k keys/s=36.24k mode=hex-parallel-patricia-hashed bufmode=parallel spent=42.791046ms rootHash=6c09eedfd4f98f7687175c0acf6e9d4fccd187da2a6334c22f1a3be22c13af0f
+[DBUG] [10-31|14:33:39.991] [commitment] processed                   block=26304984 txNum=3872393200 keys=555 keys/s=11.41k mode=hex-parallel-patricia-hashed bufmode=parallel spent=48.620948ms rootHash=9d8d7336d7282ac3de2e1574b488fe5aafe818981bc04055926892957de25254
+2026-10-31T14:33:41+01:00
+MemAvailable:    7401616 kB
+Mlocked:               0 kB
+disabled
