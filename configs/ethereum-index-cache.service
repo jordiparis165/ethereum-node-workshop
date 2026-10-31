@@ -1,0 +1,16 @@
+[Unit]
+Description=Keep Erigon snapshot B-tree indexes resident in RAM
+After=erigon.service
+
+[Service]
+Type=simple
+User=adm-mesifi
+Group=adm-mesifi
+ExecStart=/bin/sh -c 'exec /usr/bin/vmtouch -l -v -m 4G /data/erigon/snapshots/domain/*.bt'
+LimitMEMLOCK=4G
+MemoryMax=4G
+OOMScoreAdjust=500
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

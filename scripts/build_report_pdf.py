@@ -66,12 +66,20 @@ def sync_summary():
                 rpc_progress = (f"Le RPC indique le bloc {current:,} sur sa cible locale {highest:,}. "
                                 "Cette cible peut être ancienne : elle ne donne pas à elle seule le retard sur mainnet.")
             else:
-                rpc_progress = "Le RPC indique que la synchronisation continue."
+                rpc_progress = "Le RPC ne confirme pas une synchronisation terminée."
+                if status.get("rpc_error"):
+                    rpc_progress = "Le RPC est indisponible lors de ce relevé."
+                    if (status.get("storage_migration") or {}).get("phase") in (
+                        "copying", "stopping_cleanly", "copying_stopped_database", "starting_on_fast_storage"
+                    ):
+                        rpc_progress += " Le client est en pause pendant la préparation du stockage."
             match = re.search(r"progress=([^ ]+)", commitment or "")
             detail = (f" Le calcul de l'état indique {escape(match.group(1))} clés traitées pour le calcul courant. "
                       "Ce compteur peut avancer sans changement du numéro de bloc; ce n'est pas le pourcentage global de synchronisation."
                       if match else f" Dernier journal Erigon : {escape(line)}." if line else "")
             age = status.get("head_age_seconds")
+            if status.get("rpc_error"):
+                detail = " Les derniers blocs validés avant la pause sont conservés dans les relevés et les captures précédents."
             if age is not None:
                 detail += f" Le dernier bloc exposé a environ {age / 3600:.1f} heures de retard."
             if status.get("observed_at"):
@@ -115,6 +123,9 @@ def main():
     story += [Paragraph("Incident et reprise du 31 octobre", styles["Section"]), Paragraph("À 02 h 25, Erigon a signalé une erreur de racine d'état au bloc 26 301 999. Le calcul du commitment a été passé en mode séquentiel avec `--experimental.parallel-commitment=false`. Le délai d'arrêt systemd est passé à dix minutes pour laisser au client le temps de fermer sa base. À 07 h 09, le journal a indiqué le bloc 26 301 999 validé et l'exécution a ensuite dépassé ce bloc. Le contrôle de 09 h 59 montre un autre calcul en cours : 168 880 clés traitées sur 304 520. Les compteurs de blocs restent fixes pendant ce calcul. La pression d'attente disque était encore autour de 55 % à 09 h 57. Aucun redémarrage supplémentaire n'a été lancé pendant cette progression. Ces éléments confirment une reprise, mais pas la fin de la synchronisation.", styles["FR"])]
     story.append(Paragraph("À 10 h 46, l'étape Execution a terminé un lot de 1 000 blocs en 3 h 36 min. À 10 h 52, le journal `head updated` a confirmé le bloc 26 302 999, également renvoyé par le RPC. Le lot suivant vise le bloc 26 303 999. Au relevé de 10 h 59, l'exécution avait atteint 26 303 030, sans nouvelle erreur récente. La tête validée gardait environ 30 heures de retard : ce résultat prouve que le traitement avance, mais pas que le nœud a rattrapé mainnet.", styles["FR"]))
     story.append(Paragraph("Un timer systemd enregistre maintenant les mesures toutes les deux minutes sur le VPS, même quand mon PC est éteint. Il garde les compteurs RPC, les compteurs de calcul d'état, les erreurs et l'espace libre. Il marque la première synchronisation seulement si le service est actif, `eth_syncing=false` et la tête a moins de cinq minutes. Les services sont activés au démarrage. Le test de redémarrage complet de la VM reste à faire : je n'ai pas interrompu le calcul en cours pour le réaliser.", styles["FR"]))
+
+    story += [Paragraph("Accélération avec les disques existants", styles["Section"]), Paragraph("Après le relevé de 11 h, j'ai testé 32 lectures aléatoires de 4 Ko hors du cache du système. La médiane était d'environ 0,22 ms sur le disque système contre 31,82 ms sur `/data`. Ce petit test donne une piste, mais ne mesure pas le gain de synchronisation. Le disque système avait environ 179 Gio libres. J'ai préparé le placement d'environ 132 Gio de fichiers d'état et de la base active sur ce volume, en laissant le gros fichier de commitment sur `/data`. Les index peuvent aussi être gardés en RAM avec `vmtouch`, dans une limite de 4 Gio.", styles["FR"]), Paragraph("La préparation a commencé à 11 h 23. Pour libérer le disque lent pendant la copie, Erigon a été mis en pause proprement vers 11 h 27; les RPC sont donc temporairement indisponibles pendant cette opération. Chaque fichier copié est vérifié par SHA-256 et les originaux sont conservés. La copie et le retour aux chemins d'origine en cas d'échec ont été testés dans des dossiers temporaires sur Linux. La capture suivante montre la préparation en cours, pas une synchronisation terminée ni un gain déjà démontré.", styles["FR"])]
+    add_screenshot(story, "06-optimisation-stockage.png", "État réel de la préparation du stockage sur la VM. Le pourcentage de copie ne représente pas la synchronisation Ethereum.", styles)
 
     story += [Paragraph("Stockage et bilan", styles["Section"]), Paragraph("Le sujet mentionne 2 To, puis le professeur a indiqué le 30 octobre qu’un VPS de 1 To devait suffire. Le volume `/data` fait 984 Go. Le mode minimal d’Erigon est choisi pour respecter cette contrainte; les données Geth et Lighthouse déjà présentes sont conservées, ce qui réduit l’espace disponible pendant le téléchargement. La doc Erigon recommande un SSD/NVMe, alors que le disque de cette VM apparaît rotatif. Le temps de synchronisation mesuré sur une machine NVMe ne peut donc pas être promis ici. Je m’en tiens aux sorties réelles des RPC et des journaux pour dire si le nœud est prêt.", styles["FR"])]
     story.append(Paragraph(f"Rapport mis à jour le {datetime.now().strftime('%d/%m/%Y')} à partir des contrôles du VPS.", styles["Caption"]))

@@ -65,6 +65,16 @@ Mise à jour vers 11 h : l'étape Execution a terminé 1 000 blocs à 10 h 46 en
 
 ## Limites du VPS
 
+Le 31 octobre vers 11 h 15, j'ai comparé 32 petites lectures aléatoires non présentes dans le cache du système : médiane d'environ 0,22 ms sur le disque système contre 31,82 ms sur `/data`. C'est un petit test de latence, pas une mesure de synchronisation complète. Une lecture séquentielle sur `/data` a donné environ 29 Mio/s. Le disque système avait environ 179 Gio disponibles.
+
+La conservation des index `.bt` en RAM est configurée dans [`configs/ethereum-index-cache.service`](configs/ethereum-index-cache.service), avec `vmtouch`, un plafond de 4 Gio et environ 3 Gio d'index à charger. Elle est suspendue pendant la copie pour laisser le disque travailler, puis relancée après la bascule.
+
+À 11 h 23, j'ai lancé [`scripts/prepare-hot-storage.py`](scripts/prepare-hot-storage.py) sur la VM via `ethereum-hot-storage-migration.service`. La préparation copie environ 132 Gio de snapshots et, après un arrêt propre, la base `chaindata` sur `/var/lib/erigon-hot`. Le gros fichier de commitment reste sur `/data`. Chaque copie est vérifiée par SHA-256. Les originaux sont conservés sous `domain.slow-backup` et `chaindata.slow-backup`, et les chemins habituels deviennent des liens vers le volume rapide. Le script garde une marge d'espace libre et rétablit les chemins d'origine si la bascule échoue avant le démarrage.
+
+La copie est encore en cours au moment de cette mise à jour : le gain de débit n'est pas encore mesuré. Après le début de la préparation, j'ai choisi de mettre Erigon en pause proprement pendant la copie pour éviter la concurrence sur le disque lent. Les RPC sont temporairement indisponibles durant cette opération, puis le script relance le client. Le suivi est dans `/var/lib/erigon-hot/migration-status.json` et `journalctl -u ethereum-hot-storage-migration`. Les tests de copie et de retour arrière ont été exécutés sur Linux dans des dossiers temporaires (`tests/test_hot_storage.py`), sans agir sur le vrai nœud. Cette préparation ne prouve pas que la synchronisation sera terminée avant le rendu.
+
+La répartition entre volumes suit le principe décrit dans la [documentation Erigon sur le stockage](https://docs.erigon.tech/fundamentals/optimizing-storage); la conservation des index en RAM vient des [réglages de performance](https://docs.erigon.tech/fundamentals/performance-tricks).
+
 Les temps annoncés dans les docs Erigon ont été mesurés sur une machine plus puissante, avec NVMe et beaucoup plus de RAM. Ils ne garantissent pas la même durée sur ce VPS. Le mode minimal économise l’espace, mais garde moins d’historique qu’un nœud complet configuré avec le mode `full`. Je laisse donc le rapport s’appuyer sur l’état réellement retourné par les clients, pas sur une estimation.
 
 Le compte rendu avec les captures est dans [`RAPPORT-ETHEREUM.pdf`](RAPPORT-ETHEREUM.pdf).

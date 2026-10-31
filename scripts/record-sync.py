@@ -27,6 +27,9 @@ def rpc(method, params=None):
 def record():
     status = {"observed_at": datetime.now(timezone.utc).isoformat(), "fully_synced": False}
     try:
+        migration = Path("/var/lib/erigon-hot/migration-status.json")
+        if migration.exists():
+            status["storage_migration"] = json.loads(migration.read_text(encoding="utf-8"))
         status["service"] = subprocess.run(
             ["systemctl", "is-active", "erigon.service"], capture_output=True, text=True
         ).stdout.strip()

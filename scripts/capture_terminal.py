@@ -64,7 +64,7 @@ def capture_terminal(section, destination):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", choices=["sync", "public", "build", "services", "rpc"], required=True)
+    parser.add_argument("--section", choices=["sync", "public", "build", "services", "rpc", "storage"], required=True)
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     capture_terminal(arguments.section, arguments.output)

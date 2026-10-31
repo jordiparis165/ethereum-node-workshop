@@ -16,6 +16,7 @@ STATUS_FILE = ROOT / "sync-status.json"
 INTERVAL = 60
 REMOTE = r'''python3 - <<'PY'
 import json, subprocess, time, urllib.request
+from pathlib import Path
 def rpc(method):
     body=json.dumps({"jsonrpc":"2.0","method":method,"params":[],"id":1}).encode()
     req=urllib.request.Request("http://127.0.0.1:8545",data=body,headers={"Content-Type":"application/json"})
@@ -25,10 +26,21 @@ progress=[line.strip() for line in lines if "[Downloader] Syncing" in line or "[
 caplin=[line.strip() for line in lines if "Checkpoint Sync" in line or "Starting caplin" in line or "[Caplin" in line]
 body=json.dumps({"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",False],"id":2}).encode()
 req=urllib.request.Request("http://127.0.0.1:8545",data=body,headers={"Content-Type":"application/json"})
-latest=json.loads(urllib.request.urlopen(req,timeout=30).read())["result"]
-age=None if latest is None or int(latest.get("number","0x0"),16)==0 else int(time.time())-int(latest["timestamp"],16)
+rpc_error=None
+try:
+    latest=json.loads(urllib.request.urlopen(req,timeout=30).read())["result"]
+    age=None if latest is None or int(latest.get("number","0x0"),16)==0 else int(time.time())-int(latest["timestamp"],16)
+    syncing=rpc("eth_syncing")
+    block=rpc("eth_blockNumber")
+except Exception as exc:
+    age=None
+    syncing=None
+    block="0x0"
+    rpc_error=f"{type(exc).__name__}: {exc}"
 errors=[line.strip() for line in lines if any(pattern in line for pattern in ("[ERROR]", "[EROR]", "[CRIT]", "Wrong trie root", "halting process"))]
-print(json.dumps({"observed_at":__import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),"eth_syncing":rpc("eth_syncing"),"block":rpc("eth_blockNumber"),"head_age_seconds":age,"service":subprocess.check_output(["systemctl","is-active","erigon.service"],text=True).strip(),"progress":progress[-12:],"caplin":caplin[-12:],"errors":errors[-12:],"disk_free_bytes":__import__("shutil").disk_usage("/data").free}))
+migration_path=Path('/var/lib/erigon-hot/migration-status.json')
+migration=json.loads(migration_path.read_text()) if migration_path.exists() else None
+print(json.dumps({"observed_at":__import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),"eth_syncing":syncing,"block":block,"head_age_seconds":age,"rpc_error":rpc_error,"service":subprocess.run(["systemctl","is-active","erigon.service"],capture_output=True,text=True).stdout.strip(),"progress":progress[-12:],"caplin":caplin[-12:],"errors":errors[-12:],"storage_migration":migration,"disk_free_bytes":__import__("shutil").disk_usage("/data").free}))
 PY'''
 
 

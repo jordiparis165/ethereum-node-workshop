@@ -7,6 +7,22 @@ import vps_ssh as watch_sync
 
 
 COMMANDS = {
+    "storage": r"""python3 - <<'PY'
+import json, shutil, subprocess
+from datetime import datetime
+from pathlib import Path
+print('VPS time =', datetime.now().astimezone().isoformat(timespec='seconds'))
+for unit in ('erigon', 'ethereum-hot-storage-migration'):
+ print(unit, '=', subprocess.run(['systemctl','is-active',unit],capture_output=True,text=True).stdout.strip())
+s=json.loads(Path('/var/lib/erigon-hot/migration-status.json').read_text())
+print('migration phase =', s['phase'])
+print('status recorded UTC =', s['observed_at'])
+print('copy progress GiB =', round(s['copied_bytes']/1024**3,2), '/', round(s['total_bytes']/1024**3,2))
+print('current file =', s.get('current_file','-'))
+print('Copy progress is NOT Ethereum synchronization progress.')
+print('Erigon is paused cleanly during staging; originals are retained.')
+print('Fast-volume free GiB =', round(shutil.disk_usage('/var/lib/erigon-hot').free/1024**3,2))
+PY""",
     "build": r"""echo '$ Erigon v3.8.1 (source build)'; /data/ethereum-src/erigon-v3.8.1/build/bin/erigon --version; echo '$ Previous Geth/Lighthouse source builds'; /data/ethereum-src/geth-src/build/bin/geth version | head -3; /home/adm-mesifi/.cargo/bin/lighthouse --version""",
     "services": r"""echo '$ systemctl is-active erigon geth lighthouse'; systemctl is-active erigon.service geth.service lighthouse.service || true; echo '$ systemctl is-enabled erigon geth lighthouse'; systemctl is-enabled erigon.service geth.service lighthouse.service || true; echo '$ CPU, RAM and disk'; nproc; free -h; df -h /data; echo '$ kernel settings'; cat /proc/sys/vm/overcommit_memory /proc/sys/vm/max_map_count; echo '$ RPC listeners'; ss -lntup | grep -E ':(8545|8546|30303|6061)\b' || true""",
     "rpc": r"""python3 - <<'PY'
