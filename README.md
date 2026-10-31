@@ -53,7 +53,7 @@ Les tests externes du 31 octobre ont confirmé le refus sans identifiants (401),
 
 ## Incident du 31 octobre
 
-Erigon a rejeté le calcul de racine d'état au bloc 26 301 999 à 02 h 25. Le réglage actif est conservé dans [`configs/sync-performance.conf`](configs/sync-performance.conf), installé comme drop-in dans `/etc/systemd/system/erigon.service.d/`. Il utilise le commitment séquentiel, des lots de 2 Go et un arrêt propre pouvant durer dix minutes.
+Erigon a rejeté le calcul de racine d'état au bloc 26 301 999 à 02 h 25. J'ai d'abord utilisé le commitment séquentiel comme solution de secours, avec des lots de 2 Go et un arrêt propre pouvant durer dix minutes. La configuration est installée comme drop-in dans `/etc/systemd/system/erigon.service.d/`.
 
 À 07 h 09, ce bloc a été validé et l'exécution a repris au-delà. À 09 h 59, le journal indiquait `progress=168.88k/304.52k` pour le calcul d'état courant. Ce compteur continue à bouger même si `blk/s=0` et que le numéro du dernier bloc validé reste fixe. Le code d'Erigon le calcule avec `KeyIndex/UpdateCount` (`execution/stagedsync/exec3_metrics.go`). Il faut donc surveiller les lignes `parallel committed` aussi, pas seulement `parallel executed`.
 
@@ -78,6 +78,12 @@ La répartition entre volumes suit le principe décrit dans la [documentation Er
 Vers 11 h 45, j'ai aussi ajusté temporairement la copie : plafond de cache passé de 2 à 8 Gio, prélecture du volume de 128 Kio à 4 Mio puis 16 Mio. Les débits observés sont passés d'environ 23 Mio/s avant réglage à 38 Mio/s, puis 65 Mio/s sur une fenêtre d'environ trois minutes. Les fichiers diffèrent selon les fenêtres : ce sont des observations de transfert, pas un benchmark contrôlé ni un délai de synchronisation. Le relevé est dans [`evidence/2026-10-31-copy-speed.json`](evidence/2026-10-31-copy-speed.json).
 
 Le service temporaire `ethereum-copy-tuning` exécute [`scripts/tune-storage-copy.py`](scripts/tune-storage-copy.py). Il remet les paramètres d'origine dès que la copie de la base commence, avant qu'Erigon rouvre les fichiers pour ses lectures aléatoires. Les tests vérifient aussi la restauration après interruption. Les cinq tests de migration et de réglage ont passé sur Linux.
+
+Vers 12 h 06, j'ai aussi déplacé `caplin/indexing`, `caplin/latest` et `caplin/history` sur le volume rapide, soit environ 1,8 Go. Le script [`scripts/prepare-caplin-storage.py`](scripts/prepare-caplin-storage.py) utilise la même copie vérifiée, conserve les répertoires `.slow-backup` et bloque le démarrage pendant la copie avec un verrou temporaire. Cela évite de laisser les bases du consensus sur le volume lent alors que l'exécution a été déplacée.
+
+J'ai ensuite relu les journaux de 02 h 25 : `Got interrupt, shutting down` apparaît à 02:25:21, puis la mauvaise racine à 02:25:22. L'erreur est donc apparue pendant l'arrêt; elle ne prouve pas un défaut du calcul parallèle en fonctionnement normal. Pour la relance après migration, [`configs/sync-performance.conf`](configs/sync-performance.conf) rétablit le mode parallèle par défaut d'Erigon v3.8.1 (`DefaultParallelCommitment=true`). Les validations restent actives. La configuration séquentielle est conservée dans `configs/sync-performance.sequential-backup` si un vrai problème réapparaît.
+
+Le suivi systemd calcule maintenant un champ `forecast` dans `/data/ethereum-monitor/latest.json`, avec l'échéance du rendu fixée au 31 octobre à 23 h 59 (Paris). Pendant la préparation, il ne donne qu'une estimation de transfert, séparée de la fin du nœud. Après la relance, il attend des blocs validés et mesure la diminution du retard de leur horodatage. Il ignore les anciennes mesures prises avant la migration. Son estimation reste conditionnelle au débit observé; seule la vérification RPC confirme la fin. Les douze tests de migration, de restauration et de calcul d'estimation ont passé sur Linux.
 
 Les temps annoncés dans les docs Erigon ont été mesurés sur une machine plus puissante, avec NVMe et beaucoup plus de RAM. Ils ne garantissent pas la même durée sur ce VPS. Le mode minimal économise l’espace, mais garde moins d’historique qu’un nœud complet configuré avec le mode `full`. Je laisse donc le rapport s’appuyer sur l’état réellement retourné par les clients, pas sur une estimation.
 

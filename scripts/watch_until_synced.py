@@ -40,7 +40,9 @@ except Exception as exc:
 errors=[line.strip() for line in lines if any(pattern in line for pattern in ("[ERROR]", "[EROR]", "[CRIT]", "Wrong trie root", "halting process"))]
 migration_path=Path('/var/lib/erigon-hot/migration-status.json')
 migration=json.loads(migration_path.read_text()) if migration_path.exists() else None
-print(json.dumps({"observed_at":__import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),"eth_syncing":syncing,"block":block,"head_age_seconds":age,"rpc_error":rpc_error,"service":subprocess.run(["systemctl","is-active","erigon.service"],capture_output=True,text=True).stdout.strip(),"progress":progress[-12:],"caplin":caplin[-12:],"errors":errors[-12:],"storage_migration":migration,"disk_free_bytes":__import__("shutil").disk_usage("/data").free}))
+monitor_path=Path('/data/ethereum-monitor/latest.json')
+forecast=(json.loads(monitor_path.read_text()).get('forecast') if monitor_path.exists() else None)
+print(json.dumps({"observed_at":__import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),"eth_syncing":syncing,"block":block,"head_age_seconds":age,"rpc_error":rpc_error,"service":subprocess.run(["systemctl","is-active","erigon.service"],capture_output=True,text=True).stdout.strip(),"progress":progress[-12:],"caplin":caplin[-12:],"errors":errors[-12:],"storage_migration":migration,"forecast":forecast,"disk_free_bytes":__import__("shutil").disk_usage("/data").free}))
 PY'''
 
 

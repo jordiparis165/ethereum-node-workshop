@@ -6,6 +6,7 @@ After=erigon.service
 Type=oneshot
 User=adm-mesifi
 Group=adm-mesifi
+Environment=ETHEREUM_DEADLINE=2026-10-31T23:59:00+01:00
 ExecStart=/usr/bin/python3 /data/ethereum-monitor/record-sync.py
 TimeoutStartSec=90
 NoNewPrivileges=true

@@ -1,11 +1,14 @@
 """Record RPC and commitment progress on the VPS without restarting the client."""
 import json
+import os
 import shutil
 import subprocess
 import time
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+
+from sync_forecast import forecast
 
 ROOT = Path(__file__).resolve().parent
 
@@ -30,6 +33,11 @@ def record():
         migration = Path("/var/lib/erigon-hot/migration-status.json")
         if migration.exists():
             status["storage_migration"] = json.loads(migration.read_text(encoding="utf-8"))
+            status["storage_migration_service"] = subprocess.run(
+                ["systemctl", "is-active", "ethereum-hot-storage-migration.service"],
+                capture_output=True, text=True,
+            ).stdout.strip()
+            status["fast_disk_free_bytes"] = shutil.disk_usage(migration.parent).free
         status["service"] = subprocess.run(
             ["systemctl", "is-active", "erigon.service"], capture_output=True, text=True
         ).stdout.strip()
@@ -58,6 +66,17 @@ def record():
         )
     except Exception as exc:
         status["check_error"] = f"{type(exc).__name__}: {exc}"
+    deadline = os.environ.get("ETHEREUM_DEADLINE")
+    if deadline:
+        history = []
+        log = ROOT / "observations.jsonl"
+        if log.exists():
+            for line in log.read_text(encoding="utf-8").splitlines()[-60:]:
+                try:
+                    history.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        status["forecast"] = forecast(status, history, deadline)
     payload = json.dumps(status, ensure_ascii=False)
     with (ROOT / "observations.jsonl").open("a", encoding="utf-8") as handle:
         handle.write(payload + "\n")

@@ -1,0 +1,5 @@
+[Service]
+Environment=ERIGON_SNAPSHOT_MADV_RND=false
+TimeoutStopSec=10min
+ExecStart=
+ExecStart=/data/ethereum-src/erigon-v3.8.1/build/bin/erigon --chain=mainnet --datadir=/data/erigon --prune.mode=minimal --batchSize=2g --sync.loop.block.limit=10000 --experimental.parallel-commitment=false --http --http.addr=127.0.0.1 --http.port=8545 --http.api=eth,net,web3 --http.vhosts=localhost --ws --ws.port=8546 --port=30303 --mcp.disable --metrics --metrics.addr=127.0.0.1 --metrics.port=6061
