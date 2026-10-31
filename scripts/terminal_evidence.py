@@ -37,6 +37,7 @@ if isinstance(sync,dict):
   block=rpc('eth_getBlockByNumber',[target,False])
   print('snapshot target block available =',None if block is None else block.get('number'))
 head=rpc('eth_getBlockByNumber',['latest',False])
+print('validated_head_decimal =',None if head is None else int(head['number'],16))
 print('head_age_seconds =',None if head is None or int(head.get('number','0x0'),16)==0 else int(time.time())-int(head['timestamp'],16))
 logs=subprocess.check_output(['journalctl','-q','-u','erigon.service','--since','20 minutes ago','--no-pager'],text=True,stderr=subprocess.DEVNULL).splitlines()
 execution=next((line for line in reversed(logs) if '[4/6 Execution] parallel executed' in line),None)
@@ -46,8 +47,11 @@ if execution:
 commitment=next((line for line in reversed(logs) if '[4/6 Execution] parallel committed' in line),None)
 if commitment:
  match=re.search(r'blk=(\d+).*?progress=([^ ]+)',commitment)
- print('state_commitment =',f'validated_block={match.group(1)} keys={match.group(2)}' if match else commitment[-180:])
- print('The key counter can advance while the validated block stays unchanged.')
+ if match and head and int(match.group(1)) < int(head['number'],16):
+  print('state_commitment = last logged counter belongs to an earlier batch')
+ else:
+  print('state_commitment =',f'last_logged_block={match.group(1)} keys={match.group(2)}' if match else commitment[-180:])
+  print('The key counter can advance while the validated block stays unchanged.')
 errors=[line for line in logs if any(pattern in line for pattern in ('[ERROR]','[EROR]','[CRIT]','Wrong trie root','halting process'))]
 print('errors_in_last_20_minutes =',len(errors))
 PY

@@ -1,0 +1,3 @@
+Oct 31 10:46:11 vps-ae86b6b8 erigon[3725565]: [INFO] [10-31|10:46:11.655] [4/6 Execution] parallel done            in=3h36m7.44988245s buf=770.4MB/2.0GB blk=26302999 blks=1000 blk/s=0.08 txs=233.78k tx/s=18 gas/s=2.29M stepsInDB=0.46 step=9912.1 alloc=9.8GB sys=15.6GB isForkValidation=false isApplyingBlocks=true
+Oct 31 10:46:11 vps-ae86b6b8 erigon[3725565]: [INFO] [10-31|10:46:11.660] [4/6 Execution] DONE                     in=3h36m7.540262488s block=26302999
+Oct 31 10:52:08 vps-ae86b6b8 erigon[3725565]: [INFO] [10-31|10:52:08.121] head updated                             hash=0x46d9d58ffe0d1cb5dc628aefe92f9e51cf3cc35140fd005a76dee67782853e71 number=26302999 txnum=3871896378 age=1d5h59m execution=0s alloc=10.6GB sys=15.6GB

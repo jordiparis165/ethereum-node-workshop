@@ -61,6 +61,8 @@ Le nœud n'est pas encore synchronisé au relevé du matin. La cible de `eth_syn
 
 Documentation utilisée : [réglages Erigon](https://docs.erigon.tech/fundamentals/performance-tricks), [versions et mode séquentiel](https://github.com/erigontech/erigon/releases).
 
+Mise à jour vers 11 h : l'étape Execution a terminé 1 000 blocs à 10 h 46 en 3 h 36 min. Le RPC expose le bloc 26 302 999 depuis la mise à jour de tête de 10 h 52. L'exécution a commencé le lot suivant, qui vise 26 303 999. La tête validée garde environ 30 heures de retard. Les captures et le PDF sont actualisés; `evidence/2026-10-31-latest-status.json` conserve le relevé brut. La synchronisation complète et le test de reboot restent à confirmer.
+
 ## Limites du VPS
 
 Les temps annoncés dans les docs Erigon ont été mesurés sur une machine plus puissante, avec NVMe et beaucoup plus de RAM. Ils ne garantissent pas la même durée sur ce VPS. Le mode minimal économise l’espace, mais garde moins d’historique qu’un nœud complet configuré avec le mode `full`. Je laisse donc le rapport s’appuyer sur l’état réellement retourné par les clients, pas sur une estimation.
