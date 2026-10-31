@@ -32,11 +32,36 @@ Le fichier [`configs/99-erigon.conf`](configs/99-erigon.conf) règle `vm.overcom
 
 ## Vérifications
 
+Les outils de suivi sur mon PC utilisent Python : `pip install -r requirements.txt`. Ils lisent un `.env` local au format de [`.env.example`](.env.example); sur mon poste, ils reprennent directement le fichier `btc/.env` déjà présent dans le dossier parent. Les secrets restent hors du dépôt. Les captures automatiques demandent Windows et une session ouverte, mais le suivi systemd sur le VPS fonctionne indépendamment.
+
 Le script [`scripts/check-node.sh`](scripts/check-node.sh) vérifie les services, les ports et quelques requêtes RPC. Sur mainnet, `eth_chainId` doit renvoyer `0x1`. Pour savoir si la synchronisation est finie, il faut aussi vérifier `eth_syncing` et le bloc courant; un endpoint qui répond ne suffit pas à prouver que le nœud est synchronisé.
 
-Le script `scripts/watch_until_synced.py` refait ces contrôles toutes les minutes. Il ne publiera les preuves de synchronisation terminée que si `eth_syncing` vaut `false`, si le bloc courant est non nul et si son horodatage est récent. Les captures du dossier [`screenshots/`](screenshots/) sont faites depuis un vrai terminal Windows connecté au VPS par SSH.
+Le script `scripts/watch_until_synced.py` refait ces contrôles toutes les minutes depuis mon PC. Il ne publiera les preuves de synchronisation terminée que si `eth_syncing` vaut `false`, si le bloc courant est non nul et si son horodatage est récent. Les captures du dossier [`screenshots/`](screenshots/) sont faites depuis un vrai terminal Windows connecté au VPS par SSH, ou depuis ce PC pour les tests publics.
 
-## Limites
+Le timer `ethereum-sync-monitor.timer`, activé sur le VPS, conserve aussi les mesures toutes les deux minutes dans `/data/ethereum-monitor/observations.jsonl`. Il fonctionne même si mon PC est éteint. Un fichier `first-verified-sync.json` est créé seulement quand les contrôles de fin passent; il ne déclenche ni arrêt ni redémarrage d'Erigon. Pour voir le dernier état : `cat /data/ethereum-monitor/latest.json`.
+
+## Accès RPC public
+
+Le 31 octobre, j'ai ajouté un proxy Nginx sans redémarrer Erigon :
+
+- HTTPS : `https://vps-ae86b6b8.vps.ovh.net:9443/rpc`
+- WebSocket TLS : `wss://vps-ae86b6b8.vps.ovh.net:9443/ws`
+
+L'accès demande une authentification HTTP Basic. Les identifiants sont dans `rpc-access.secret` sur mon PC, exclu de Git; ils sont à transmettre séparément pour la correction. Le certificat est auto-signé et son certificat public est dans [`configs/rpc-tls.crt`](configs/rpc-tls.crt). Le script de test lui fait explicitement confiance et vérifie le nom du serveur; il ne désactive pas TLS. La configuration limite aussi les requêtes à 5/s, les connexions à 5 par IP et le corps des requêtes à 64 Ko.
+
+Les tests externes du 31 octobre ont confirmé le refus sans identifiants (401), `eth_chainId=0x1` et `web3_clientVersion` en HTTPS et en WSS. Pour les refaire depuis le PC : `python scripts/test-public-rpc.py` (dépendance `websockets`). Le proxy utilise [`configs/ethereum-rpc.nginx.conf`](configs/ethereum-rpc.nginx.conf). Erigon reste sur localhost; seuls Nginx et les ports P2P sont publics. L'API Engine et les métriques restent privées.
+
+## Incident du 31 octobre
+
+Erigon a rejeté le calcul de racine d'état au bloc 26 301 999 à 02 h 25. Le réglage actif est conservé dans [`configs/sync-performance.conf`](configs/sync-performance.conf), installé comme drop-in dans `/etc/systemd/system/erigon.service.d/`. Il utilise le commitment séquentiel, des lots de 2 Go et un arrêt propre pouvant durer dix minutes.
+
+À 07 h 09, ce bloc a été validé et l'exécution a repris au-delà. À 09 h 59, le journal indiquait `progress=168.88k/304.52k` pour le calcul d'état courant. Ce compteur continue à bouger même si `blk/s=0` et que le numéro du dernier bloc validé reste fixe. Le code d'Erigon le calcule avec `KeyIndex/UpdateCount` (`execution/stagedsync/exec3_metrics.go`). Il faut donc surveiller les lignes `parallel committed` aussi, pas seulement `parallel executed`.
+
+Le nœud n'est pas encore synchronisé au relevé du matin. La cible de `eth_syncing` est une cible locale qui peut être ancienne; son ratio ne prouve pas une synchronisation à 99,99 %. Le contrôle de fin exige toujours `eth_syncing=false` et une tête récente. Erigon et le timer sont activés au démarrage, mais je n'ai pas redémarré la VM pendant ce calcul pour tester la reprise après reboot. Ce test reste à faire pour compléter le sujet.
+
+Documentation utilisée : [réglages Erigon](https://docs.erigon.tech/fundamentals/performance-tricks), [versions et mode séquentiel](https://github.com/erigontech/erigon/releases).
+
+## Limites du VPS
 
 Les temps annoncés dans les docs Erigon ont été mesurés sur une machine plus puissante, avec NVMe et beaucoup plus de RAM. Ils ne garantissent pas la même durée sur ce VPS. Le mode minimal économise l’espace, mais garde moins d’historique qu’un nœud complet configuré avec le mode `full`. Je laisse donc le rapport s’appuyer sur l’état réellement retourné par les clients, pas sur une estimation.
 

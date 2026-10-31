@@ -5,3 +5,4 @@
 screenshots/private/
 sync-watch.log
 sync-status.json
+__pycache__/

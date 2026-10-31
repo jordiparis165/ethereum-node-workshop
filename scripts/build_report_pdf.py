@@ -56,16 +56,26 @@ def sync_summary():
             progress = status.get("progress", [])
             snapshot = next((line for line in reversed(progress) if "Syncing snapshots" in line), None)
             execution = next((line for line in reversed(progress) if "[4/6 Execution] parallel executed" in line), None)
-            line = execution or snapshot or (progress[-1] if progress else "")
+            commitment = next((line for line in reversed(progress) if "[4/6 Execution] parallel committed" in line), None)
+            line = commitment or execution or snapshot or (progress[-1] if progress else "")
             line = re.sub(r"^.*?\[Downloader\] ", "", line)
             line = re.sub(r"^.*?\[4/6 Execution\] ", "Execution : ", line)
             if isinstance(syncing, dict):
                 current = int(syncing.get("currentBlock", "0x0"), 16)
                 highest = int(syncing.get("highestBlock", "0x0"), 16)
-                rpc_progress = f"Le RPC indique le bloc {current:,} sur la cible {highest:,}."
+                rpc_progress = (f"Le RPC indique le bloc {current:,} sur sa cible locale {highest:,}. "
+                                "Cette cible peut être ancienne : elle ne donne pas à elle seule le retard sur mainnet.")
             else:
                 rpc_progress = "Le RPC indique que la synchronisation continue."
-            detail = f" Dernier journal Erigon : {escape(line)}." if line else ""
+            match = re.search(r"progress=([^ ]+)", commitment or "")
+            detail = (f" Le calcul de l'état indique {escape(match.group(1))} clés traitées pour le calcul courant. "
+                      "Ce compteur peut avancer sans changement du numéro de bloc; ce n'est pas le pourcentage global de synchronisation."
+                      if match else f" Dernier journal Erigon : {escape(line)}." if line else "")
+            age = status.get("head_age_seconds")
+            if age is not None:
+                detail += f" Le dernier bloc exposé a environ {age / 3600:.1f} heures de retard."
+            if status.get("observed_at"):
+                detail += f" Relevé UTC : {escape(status['observed_at'])}."
             free = int(status.get("disk_free_bytes", 0))
             free_text = f" Il restait environ {free / (1024**3):.0f} Gio libres sur `/data`." if free else ""
             return ("Au dernier relevé, le nœud n’était pas encore synchronisé. " + rpc_progress +
@@ -97,9 +107,13 @@ def main():
 
     story += [Paragraph("Tests", styles["Section"]), Paragraph("Les appels RPC sont faits directement sur la VM. `eth_chainId` doit répondre `0x1` pour Ethereum mainnet; `web3_clientVersion` identifie le client, et `net_peerCount` permet de vérifier les connexions P2P. Une réponse RPC seule ne prouve pas que la synchronisation est terminée, donc j’ai aussi contrôlé `eth_syncing` et le bloc de tête.", styles["FR"])]
     add_screenshot(story, "03-rpc.png", "Résultats réels des requêtes JSON-RPC exécutées sur le VPS.", styles)
+    story.append(Paragraph("Le 31 octobre, j'ai ajouté Nginx devant les RPC locaux, sans redémarrer Erigon. L'accès public utilise HTTPS sur `https://vps-ae86b6b8.vps.ovh.net:9443/rpc` et WSS sur `wss://vps-ae86b6b8.vps.ovh.net:9443/ws`. Il demande un identifiant et un mot de passe, transmis séparément du dépôt. Le certificat est auto-signé, exporté dans le dépôt et explicitement approuvé par le script de test. Le nom du serveur et TLS sont vérifiés. Le proxy limite les requêtes, les connexions et la taille des messages. Depuis le PC, les tests ont confirmé le refus sans authentification (401), puis des réponses `eth_chainId=0x1` et `web3_clientVersion` en HTTPS et en WSS.", styles["FR"]))
+    add_screenshot(story, "05-rpc-public.png", "Tests effectués depuis le PC vers les endpoints publics : TLS, authentification et namespaces eth et web3 en HTTPS et WebSocket.", styles)
 
     story += [Paragraph("Synchronisation", styles["Section"]), Paragraph(sync_summary(), styles["FR"])]
     add_screenshot(story, "04-synchronisation.png", "État retourné par Erigon et journaux de téléchargement/consensus lors du contrôle.", styles)
+    story += [Paragraph("Incident et reprise du 31 octobre", styles["Section"]), Paragraph("À 02 h 25, Erigon a signalé une erreur de racine d'état au bloc 26 301 999. Le calcul du commitment a été passé en mode séquentiel avec `--experimental.parallel-commitment=false`. Le délai d'arrêt systemd est passé à dix minutes pour laisser au client le temps de fermer sa base. À 07 h 09, le journal a indiqué le bloc 26 301 999 validé et l'exécution a ensuite dépassé ce bloc. Le contrôle de 09 h 59 montre un autre calcul en cours : 168 880 clés traitées sur 304 520. Les compteurs de blocs restent fixes pendant ce calcul. La pression d'attente disque était encore autour de 55 % à 09 h 57. Aucun redémarrage supplémentaire n'a été lancé pendant cette progression. Ces éléments confirment une reprise, mais pas la fin de la synchronisation.", styles["FR"])]
+    story.append(Paragraph("Un timer systemd enregistre maintenant les mesures toutes les deux minutes sur le VPS, même quand mon PC est éteint. Il garde les compteurs RPC, les compteurs de calcul d'état, les erreurs et l'espace libre. Il marque la première synchronisation seulement si le service est actif, `eth_syncing=false` et la tête a moins de cinq minutes. Les services sont activés au démarrage. Le test de redémarrage complet de la VM reste à faire : je n'ai pas interrompu le calcul en cours pour le réaliser.", styles["FR"]))
 
     story += [Paragraph("Stockage et bilan", styles["Section"]), Paragraph("Le sujet mentionne 2 To, puis le professeur a indiqué le 30 octobre qu’un VPS de 1 To devait suffire. Le volume `/data` fait 984 Go. Le mode minimal d’Erigon est choisi pour respecter cette contrainte; les données Geth et Lighthouse déjà présentes sont conservées, ce qui réduit l’espace disponible pendant le téléchargement. La doc Erigon recommande un SSD/NVMe, alors que le disque de cette VM apparaît rotatif. Le temps de synchronisation mesuré sur une machine NVMe ne peut donc pas être promis ici. Je m’en tiens aux sorties réelles des RPC et des journaux pour dire si le nœud est prêt.", styles["FR"])]
     story.append(Paragraph(f"Rapport mis à jour le {datetime.now().strftime('%d/%m/%Y')} à partir des contrôles du VPS.", styles["Caption"]))

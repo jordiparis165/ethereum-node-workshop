@@ -1,0 +1,4 @@
+paramiko
+Pillow
+reportlab
+websockets>=14

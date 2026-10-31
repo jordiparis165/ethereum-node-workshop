@@ -1,0 +1,11 @@
+[Unit]
+Description=Record Ethereum RPC and state commitment progress
+After=erigon.service
+
+[Service]
+Type=oneshot
+User=adm-mesifi
+Group=adm-mesifi
+ExecStart=/usr/bin/python3 /data/ethereum-monitor/record-sync.py
+TimeoutStartSec=90
+NoNewPrivileges=true

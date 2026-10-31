@@ -1,0 +1,10 @@
+[Unit]
+Description=Record Ethereum sync every two minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=2min
+Unit=ethereum-sync-monitor.service
+
+[Install]
+WantedBy=timers.target

@@ -1,9 +1,9 @@
 import argparse
+import runpy
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "btc"))
-import watch_sync
+import vps_ssh as watch_sync
 
 
 COMMANDS = {
@@ -20,15 +20,17 @@ print('Consensus layer: Caplin integrated in Erigon (Beacon API kept disabled to
 PY""",
     "sync": r"""echo '$ Erigon service'; systemctl is-active erigon.service; python3 - <<'PY'
 import json, time, urllib.request
+from datetime import datetime
 import re, subprocess
 def rpc(method,params=[]):
  data=json.dumps({'jsonrpc':'2.0','method':method,'params':params,'id':1}).encode()
  req=urllib.request.Request('http://127.0.0.1:8545',data=data,headers={'Content-Type':'application/json'})
  return json.loads(urllib.request.urlopen(req,timeout=30).read())['result']
+print('VPS time =',datetime.now().astimezone().isoformat(timespec='seconds'))
 print('eth_chainId =',rpc('eth_chainId'))
 print('eth_blockNumber =',rpc('eth_blockNumber'))
 sync=rpc('eth_syncing')
-print('eth_syncing =',sync)
+print('eth_syncing =',sync if not isinstance(sync,dict) else {key:sync.get(key) for key in ('currentBlock','highestBlock')})
 if isinstance(sync,dict):
  target=sync.get('highestBlock')
  if target:
@@ -41,6 +43,13 @@ execution=next((line for line in reversed(logs) if '[4/6 Execution] parallel exe
 if execution:
  match=re.search(r'blk=(\d+).*?blk/s=([\d.]+).*?isApplyingBlocks=(\w+)',execution)
  print('execution_stage =',f'block={match.group(1)} rate={match.group(2)} blk/s applying={match.group(3)}' if match else execution[-180:])
+commitment=next((line for line in reversed(logs) if '[4/6 Execution] parallel committed' in line),None)
+if commitment:
+ match=re.search(r'blk=(\d+).*?progress=([^ ]+)',commitment)
+ print('state_commitment =',f'validated_block={match.group(1)} keys={match.group(2)}' if match else commitment[-180:])
+ print('The key counter can advance while the validated block stays unchanged.')
+errors=[line for line in logs if any(pattern in line for pattern in ('[ERROR]','[EROR]','[CRIT]','Wrong trie root','halting process'))]
+print('errors_in_last_20_minutes =',len(errors))
 PY
 echo '$ Disk and RAM'; df -h /data; free -h""",
 }
@@ -48,8 +57,11 @@ echo '$ Disk and RAM'; df -h /data; free -h""",
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", choices=COMMANDS, required=True)
+    parser.add_argument("--section", choices=[*COMMANDS, "public"], required=True)
     section = parser.parse_args().section
+    if section == "public":
+        runpy.run_path(str(Path(__file__).with_name("test-public-rpc.py")), run_name="__main__")
+        return
     config = watch_sync.load_env(watch_sync.ENV_PATH)
     client = watch_sync.connect(config)
     try:
