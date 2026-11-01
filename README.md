@@ -5,7 +5,7 @@ Pour ce TD, j’ai d’abord installé Geth avec Lighthouse. La synchronisation 
 ## État du rendu au 1er novembre
 
 <!-- LIVE_STATUS_BEGIN -->
-Relevé UTC : **2026-11-01T12:45:19.757947+00:00**. Bloc RPC : **26316998**. Écart avec la référence : **3007 blocs**.
+Relevé UTC : **2026-11-01T19:33:47.891140+00:00**. Bloc RPC : **26318998**. Écart avec la référence : **3042 blocs**.
 
 Synchronisation : `not_yet_verified`. Reboot : `not_yet_verified`.
 <!-- LIVE_STATUS_END -->
@@ -22,6 +22,14 @@ L'état vérifiable le plus récent est dans [evidence/submission-audit.json](ev
 - Le lien du dépôt était déjà présent dans le tableur, cellule `Feuille 1!F22`, sur la ligne Jordi PARIS / TP-MESIFI590426-07. Lecture de contrôle effectuée le 1er novembre, sans modification : [preuve du contrôle](evidence/spreadsheet-submission.json).
 
 Le nouvel objectif de rendu est le **1er novembre 2026 à 23 h 59, heure de Paris**. Les mesures ci-dessous datant du 31 octobre sont conservées comme historique.
+
+## Mesures du 1er novembre au soir
+
+Vers 20 h 30, le bloc validé était toujours 26 318 998 contre 26 322 024 sur une référence mainnet indépendante : 3 026 blocs de retard. Entre 18 h 24 et 20 h 30, le réseau a produit 633 blocs et le RPC local n'a pas publié de nouveau lot. Erigon continuait à exécuter des blocs et à construire des fichiers d'index, mais pendant cette période la validation était moins rapide que la production de blocs. Le pourcentage d'un index n'est pas un pourcentage de synchronisation.
+
+Le volume `/data` était occupé environ 92 % du temps, avec 228 IOPS et 35 ms par requête; le volume système était beaucoup moins sollicité. Le seul swap initial était sur le volume système, pas sur `/data`. La RAM disponible est descendue vers 1,1 Gio et le swap de 4 Gio était plein. J'ai donc ajouté un second swap de secours de 4 Gio sur le volume système, sans redémarrer Erigon et avec plus de 23 Gio libres après l'opération. L'unité `var-lib-erigon_swap_extra.swap` est active et activée au démarrage. Cela protège contre un arrêt OOM, mais ne corrige pas la lenteur du volume `/data`.
+
+La deadline de 23 h 59 concerne le rendu : **aucun arrêt d'Erigon ou de Caplin n'est prévu à cette heure**. Le timer de suivi du VPS continue après la deadline. Si le PC reste allumé et connecté, le script de suivi continue aussi et publiera les preuves après synchronisation confirmée; la disponibilité de la VM le lendemain n'est pas garantie. En cas d'échec de la publication de 23 h 30, il réessaie au contrôle suivant.
 
 ## La VM
 
@@ -74,6 +82,13 @@ sudo systemctl enable --now erigon.service
 ```
 
 `GOMEMLIMIT=14GiB` laisse une marge au système et au cache disque. C'est une cible Go souple, pas un plafond strict. Le swap de 4 Gio est un secours pour les pointes mémoire. Les symlinks de stockage de cette VM résultent d'une migration séparée et vérifiée; ils ne sont pas nécessaires pour une première installation sur un volume rapide suffisamment grand.
+
+Sur cette VM, la pression mémoire a aussi nécessité un second swap de secours. Il est optionnel sur une machine neuve; le script vérifie qu'il restera au moins 20 Gio libres sur le volume système :
+
+```bash
+sudo install -m 644 configs/var-lib-erigon_swap_extra.swap /etc/systemd/system/
+sudo python3 scripts/configure-extra-swap.py
+```
 
 4. Installer le monitoring :
 

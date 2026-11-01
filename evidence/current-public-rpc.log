@@ -1,11 +1,11 @@
-Test time (UTC): 2026-11-01T12:45:48.124997+00:00
+Test time (UTC): 2026-11-01T19:34:04.026661+00:00
 HTTP endpoint: https://vps-ae86b6b8.vps.ovh.net:9443/rpc
 TLS: hostname and certificate verified against configs/rpc-tls.crt
 Without authentication: HTTP 401 (expected)
 HTTPS eth_chainId = 0x1
 HTTPS web3_clientVersion = erigon/3.8.1-cf6f1413/linux-amd64/go1.26.10-X:jsonv2
-HTTPS eth_blockNumber = 0x19190c6
-HTTPS eth_syncing = {'currentBlock': '0x19190c6', 'highestBlock': '0x19194ae'}
+HTTPS eth_blockNumber = 0x1919896
+HTTPS eth_syncing = {'currentBlock': '0x1919896', 'highestBlock': '0x1919c24'}
 HTTPS admin_nodeInfo = disabled (expected)
 HTTPS debug_metrics = disabled (expected)
 HTTPS personal_listAccounts = disabled (expected)

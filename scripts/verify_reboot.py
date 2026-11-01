@@ -70,7 +70,8 @@ def run(read_status):
             if code or boot_id.strip() == state['before_boot_id']:
                 continue
             state['after_boot_id'] = boot_id.strip()
-            units = ['erigon', 'nginx', 'ethereum-sync-monitor.timer', 'var-lib-erigon_swap.swap']
+            units = ['erigon', 'nginx', 'ethereum-sync-monitor.timer', 'var-lib-erigon_swap.swap',
+                     'var-lib-erigon_swap_extra.swap']
             results = {}
             for unit in units:
                 code, out, err = vps_ssh.run_remote(client, f'systemctl is-active {unit}; systemctl is-enabled {unit}')

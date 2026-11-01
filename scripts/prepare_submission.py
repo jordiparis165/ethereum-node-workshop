@@ -14,7 +14,7 @@ from sync_validation import Qualification
 ROOT = Path(__file__).resolve().parents[1]
 CHECKS = {
     'source_build': "git -C /data/ethereum-src/erigon-v3.8.1 rev-parse HEAD; /data/ethereum-src/erigon-v3.8.1/build/bin/erigon --version; tail -n 4 /data/ethereum-src/erigon-build-final.log; git -C /data/ethereum-src/erigon-v3.8.1 ls-files cl/phase1/stages | head -3",
-    'services': 'systemctl show erigon -p ActiveState -p MainPID -p Environment -p ExecStart; systemctl is-enabled erigon nginx ethereum-sync-monitor.timer var-lib-erigon_swap.swap',
+    'services': 'systemctl show erigon -p ActiveState -p MainPID -p Environment -p ExecStart; systemctl is-enabled erigon nginx ethereum-sync-monitor.timer var-lib-erigon_swap.swap var-lib-erigon_swap_extra.swap',
     'security': "sudo -n nginx -t; sudo -n stat -c '%a %U %G %n' /etc/nginx/ethereum-rpc/tls.key /etc/nginx/ethereum-rpc/htpasswd; ss -lntup | grep -E ':(9443|8545|8546|8551|6061|5555)\\b'",
     'resources': 'date -Is; free -h; df -h / /data; /usr/sbin/swapon --show; cat /proc/sys/kernel/random/boot_id',
     'recent_chain_events': "journalctl -q -u erigon --since '2 hours ago' --no-pager | grep -E 'head updated|Execution.*DONE|Forward Sync|Checkpoint Sync|Background files build|\\[EROR\\]|\\[CRIT\\]' | tail -18",
@@ -106,7 +106,7 @@ def main():
             'synchronization': 'verified_in_saved_repeated_observations' if proof_valid else 'not_yet_verified',
             'public_https_wss_eth_web3_auth_tls': 'passed' if public.returncode == 0 else 'failed',
             'systemd_enabled': 'configured' if (checks['services']['exit_code'] == 0
-                and checks['services']['output'].splitlines()[-4:] == ['enabled'] * 4) else 'check_failed',
+                and checks['services']['output'].splitlines()[-5:] == ['enabled'] * 5) else 'check_failed',
             'actual_reboot_and_automatic_recovery': 'passed' if reboot.get('passed') is True else 'not_yet_verified',
             'screenshots': 'real_terminal_captures_in_screenshots',
             'spreadsheet': 'verified_already_present_in_F22' if sheet.get('value') == 'https://github.com/jordiparis165/ethereum-node-workshop'

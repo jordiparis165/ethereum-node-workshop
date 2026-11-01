@@ -11,10 +11,13 @@ L'état courant est dans `evidence/submission-audit.json`, `current-status.json`
 - `12-etat-actuel.png` : comparaison entre le RPC du VPS et une référence mainnet indépendante, à l'heure indiquée.
 - `13-services-enabled.png` : services actifs et activés, sans prétendre qu'un reboot a déjà été testé.
 - `09-securite-memoire.png` : cible mémoire et swap de secours après relance propre.
+- `16-swap-urgence.png` : second swap activé à chaud, état des services et compteurs OOM, si la capture du terminal a réussi.
 - `2026-11-01-linux-tests.log` : 38 tests passent sur Linux. Les tests des garde-fous de reboot ne sont pas une preuve de reboot réel.
 - `spreadsheet-submission.json` : le lien du dépôt était déjà présent dans la cellule F22 du tableur, vérifiée sans modification.
 
 Le mode reste `minimal`, pas le mode `full` demandé au sens strict d'Erigon. La synchronisation finale et le reboot réel ne doivent pas être considérés comme validés tant que leurs preuves spécifiques ne sont pas présentes.
+
+Le 1er novembre vers 20 h 30, le swap initial était plein et il restait environ 1,1 Gio de RAM disponible. Le second swap de secours a été activé sans redémarrer le processus Erigon; les relevés système et le PDF documentent cette marge supplémentaire. Ce n'est pas une preuve de synchronisation complète.
 
 ## Historique
 

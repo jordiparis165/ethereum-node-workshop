@@ -1,0 +1,9 @@
+[Unit]
+Description=Additional emergency swap for Ethereum node
+
+[Swap]
+What=/var/lib/erigon_swap_extra
+Options=pri=10
+
+[Install]
+WantedBy=swap.target

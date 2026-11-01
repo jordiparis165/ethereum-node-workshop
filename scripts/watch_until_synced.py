@@ -145,7 +145,10 @@ def publish_deadline_snapshot(status):
     for section, filename in [('reference', '12-etat-actuel.png'), ('public', '11-tests-publics.png')]:
         if capture_safely(section, filename):
             captures.append('screenshots/' + filename)
-    publish_current('Publish honest pre-deadline submission snapshot', ['evidence/deadline-status.json', *captures])
+    published = publish_current('Publish honest pre-deadline submission snapshot',
+                                ['evidence/deadline-status.json', *captures])
+    if not published:
+        raise RuntimeError('Pre-deadline evidence was pushed, but public RPC validation failed; retrying')
     (ROOT / '.deadline-published.secret').write_text(datetime.now(timezone.utc).isoformat(), encoding='utf-8')
 
 

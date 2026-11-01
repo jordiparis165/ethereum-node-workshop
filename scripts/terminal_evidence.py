@@ -8,12 +8,10 @@ import vps_ssh as watch_sync
 
 COMMANDS = {
     "memory": r"""date -Is
-echo '$ systemd memory target'; systemctl show erigon -p ActiveState -p MainPID -p Environment -p NRestarts
-echo '$ RAM and emergency swap'; free -h; /usr/sbin/swapon --show
-echo '$ swap auto-start'; systemctl is-enabled var-lib-erigon_swap.swap
-echo '$ storage reserve'; df -h / /data
-echo '$ current memory events'; cat /sys/fs/cgroup/system.slice/erigon.service/memory.events
-echo 'GOMEMLIMIT is a soft Go target, not a strict total-RAM cap.'""",
+systemctl show erigon -p ActiveState -p MainPID -p Environment
+free -h; /usr/sbin/swapon --show
+echo '$ swap units active / enabled'; systemctl is-active var-lib-erigon_swap.swap var-lib-erigon_swap_extra.swap; systemctl is-enabled var-lib-erigon_swap.swap var-lib-erigon_swap_extra.swap
+echo '$ OOM events'; grep -E '^oom( |_)' /sys/fs/cgroup/system.slice/erigon.service/memory.events""",
     "storage": r"""python3 - <<'PY'
 import json, shutil, subprocess
 from datetime import datetime
@@ -42,7 +40,7 @@ echo 'Caplin is compiled into the Erigon binary; no external consensus binary is
     "services": r"""date -Is
 python3 - <<'PY'
 import subprocess
-for unit in ('erigon','nginx','ethereum-sync-monitor.timer','var-lib-erigon_swap.swap'):
+for unit in ('erigon','nginx','ethereum-sync-monitor.timer','var-lib-erigon_swap.swap','var-lib-erigon_swap_extra.swap'):
  def state(action):return subprocess.run(['systemctl',action,unit],text=True,capture_output=True).stdout.strip()
  print(unit,':',state('is-active'),'; boot =',state('is-enabled'))
 PY

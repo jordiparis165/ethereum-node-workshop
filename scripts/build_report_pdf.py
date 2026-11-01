@@ -148,6 +148,30 @@ def main():
     paragraph('La confirmation finale demande trois observations sur au moins deux minutes : service actif, eth_syncing=false, tête de moins '
               'de deux minutes, hash identique à la référence et écart de quatre blocs maximum. '
               'Le suivi du VPS seul ne constitue pas cette confirmation indépendante.')
+    section('Limites de stockage et débit réel')
+    paragraph('Le VPS a un volume /data de 984 Gio, et non les 2 To indiqués dans le sujet. '
+              'Le disque système de 197 Gio est plus rapide mais trop petit pour recevoir toutes les données. '
+              'Le 1er novembre vers 20 h 30, /data était occupé environ 92 % du temps avec 228 IOPS '
+              'et 35 ms par requête, alors que le disque système était occupé moins de 5 %. '
+              'La pression I/O observée était proche de 52 %; les lectures du processus Erigon dominaient. '
+              'Ces chiffres décrivent une mesure, pas une caractéristique garantie du stockage physique.')
+    paragraph('La validation avance par lots. Entre 18 h 24 et 20 h 30, le dernier bloc exposé par notre RPC '
+              'est resté à 26 318 998 tandis que la référence mainnet est passée de 26 321 391 à 26 322 024. '
+              'Le retard est donc passé de 2 393 à 3 026 blocs pendant ce créneau : le traitement et la '
+              'validation ont alors été plus lents que la production de nouveaux blocs. Des index étaient '
+              'toujours construits en arrière-plan. Les pourcentages de ces fichiers ne sont pas un '
+              'pourcentage de synchronisation globale.')
+    paragraph('Vers 20 h 30, il restait environ 1,1 Gio de RAM disponible et le premier swap de 4 Gio '
+              'était rempli. Un second swap de secours de 4 Gio a été activé sur le volume système '
+              'sans redémarrer Erigon; le même PID est resté actif. Ce secours réduit le risque '
+              'd’un nouvel arrêt OOM mais ne rend pas /data plus rapide. La synchronisation reste '
+              'non confirmée tant que les contrôles répétés de tête récente et de référence ne passent pas. '
+              'La limite du mode minimal reste également présente.')
+    paragraph('La date limite concerne le dépôt du rapport, pas l’arrêt du service. Erigon et le timer '
+              'continuent après 23 h 59 tant que la VM est disponible. Le PC ne peut publier les '
+              'nouvelles preuves sur GitHub que s’il reste allumé et connecté; la VM pourrait être '
+              'désactivée par l’école sans préavis.')
+    add_screenshot(story, '16-swap-urgence.png', 'Swap supplémentaire et services vérifiés sur le VPS après activation, sans redémarrer Erigon.', styles)
     forecast = monitor.get('forecast') or {}
     if forecast.get('scenarios'):
         for name, label in [('optimistic', 'optimiste'), ('central', 'centrale'), ('pessimistic', 'pessimiste')]:
