@@ -1,4 +1,4 @@
-Test time (UTC): 2026-11-01T19:34:04.026661+00:00
+Test time (UTC): 2026-11-01T21:39:35.877016+00:00
 HTTP endpoint: https://vps-ae86b6b8.vps.ovh.net:9443/rpc
 TLS: hostname and certificate verified against configs/rpc-tls.crt
 Without authentication: HTTP 401 (expected)

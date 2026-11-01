@@ -5,7 +5,7 @@ Pour ce TD, j’ai d’abord installé Geth avec Lighthouse. La synchronisation 
 ## État du rendu au 1er novembre
 
 <!-- LIVE_STATUS_BEGIN -->
-Relevé UTC : **2026-11-01T19:33:47.891140+00:00**. Bloc RPC : **26318998**. Écart avec la référence : **3042 blocs**.
+Relevé UTC : **2026-11-01T21:39:06.167130+00:00**. Bloc RPC : **26318998**. Écart avec la référence : **3665 blocs**.
 
 Synchronisation : `not_yet_verified`. Reboot : `not_yet_verified`.
 <!-- LIVE_STATUS_END -->
@@ -26,6 +26,10 @@ Le nouvel objectif de rendu est le **1er novembre 2026 à 23 h 59, heure de Pari
 ## Mesures du 1er novembre au soir
 
 Vers 20 h 30, le bloc validé était toujours 26 318 998 contre 26 322 024 sur une référence mainnet indépendante : 3 026 blocs de retard. Entre 18 h 24 et 20 h 30, le réseau a produit 633 blocs et le RPC local n'a pas publié de nouveau lot. Erigon continuait à exécuter des blocs et à construire des fichiers d'index, mais pendant cette période la validation était moins rapide que la production de blocs. Le pourcentage d'un index n'est pas un pourcentage de synchronisation.
+
+Vers 22 h 37, j'ai refait un diagnostic après plusieurs timeouts RPC. Erigon (PID 3874187) exécutait encore : le journal est passé au bloc 26 319 510 et ses compteurs `/proc/3874187/io` ont gagné environ 80 Mo lus et 74 Ko écrits en quatre secondes. Le bloc **validé** restait cependant 26 318 998; la référence à 22 h 39 était 26 322 663, soit 3 665 blocs de retard. Le RPC a fini par répondre de nouveau, sans publier de nouveau bloc. Caplin annonçait encore des pairs. Ce n'est donc pas un arrêt complet, mais le débit de rattrapage reste insuffisant.
+
+La mémoire disponible oscillait autour de 500 à 700 Mio, les deux swaps totalisant 8 Gio étaient quasiment pleins, et la pression I/O `full` sur 60 secondes était proche de 63 %. Erigon occupait environ 21 Gio de RAM résidente; les autres processus ne consommaient chacun que quelques Mio. Aucun événement OOM nouveau n'est apparu dans les journaux accessibles lors de ce contrôle. Je n'ai pas redémarré Erigon ni vidé le swap : les compteurs progressaient et ces opérations risqueraient de faire perdre du temps ou de la progression. Il reste environ 134 Gio sur `/data`. Le mode `minimal`, la synchronisation incomplète et l'absence de test de reboot réel restent des limites du rendu.
 
 Le volume `/data` était occupé environ 92 % du temps, avec 228 IOPS et 35 ms par requête; le volume système était beaucoup moins sollicité. Le seul swap initial était sur le volume système, pas sur `/data`. La RAM disponible est descendue vers 1,1 Gio et le swap de 4 Gio était plein. J'ai donc ajouté un second swap de secours de 4 Gio sur le volume système, sans redémarrer Erigon et avec plus de 23 Gio libres après l'opération. L'unité `var-lib-erigon_swap_extra.swap` est active et activée au démarrage. Cela protège contre un arrêt OOM, mais ne corrige pas la lenteur du volume `/data`.
 

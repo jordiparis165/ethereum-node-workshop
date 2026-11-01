@@ -171,6 +171,20 @@ def main():
               'continuent après 23 h 59 tant que la VM est disponible. Le PC ne peut publier les '
               'nouvelles preuves sur GitHub que s’il reste allumé et connecté; la VM pourrait être '
               'désactivée par l’école sans préavis.')
+    paragraph('Diagnostic du 1er novembre vers 22 h 37 : après plusieurs timeouts du RPC, le processus Erigon '
+              'est resté actif et a encore lu environ 80 Mo en quatre secondes. Le journal est passé au bloc '
+              '26 319 510 en exécution, mais le bloc validé exposé par RPC restait 26 318 998. '
+              'La référence mainnet à 22 h 39 était 26 322 663, soit 3 665 blocs de retard. '
+              'Le RPC a fini par répondre de nouveau, sans nouveau bloc validé. Caplin avait encore des pairs. '
+              'Cela montre une activité réelle, pas une synchronisation terminée.')
+    paragraph('La RAM disponible oscillait autour de 500 à 700 Mio; les deux swaps, 8 Gio au total, '
+              'étaient presque pleins. La pression I/O full moyenne sur 60 secondes était proche de 63 %. '
+              'Erigon occupait environ 21 Gio de RAM résidente, les autres processus seulement quelques Mio. '
+              'Aucun nouvel OOM n\'est apparu dans les journaux accessibles pendant ce contrôle. '
+              'Je n\'ai pas vidé le swap ni redémarré le client, car les compteurs avançaient encore et une '
+              'interruption risquerait de retarder davantage la synchronisation. Le mode minimal et le reboot '
+              'réel non testé restent des limites du rendu.')
+    add_screenshot(story, '17-memoire-22h.png', 'Capture reelle du terminal a 22 h 41 : RAM, deux swaps, service actif et compteurs OOM.', styles)
     add_screenshot(story, '16-swap-urgence.png', 'Swap supplémentaire et services vérifiés sur le VPS après activation, sans redémarrer Erigon.', styles)
     forecast = monitor.get('forecast') or {}
     if forecast.get('scenarios'):

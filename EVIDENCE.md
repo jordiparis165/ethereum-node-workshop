@@ -17,6 +17,11 @@ L'état courant est dans `evidence/submission-audit.json`, `current-status.json`
 
 Le mode reste `minimal`, pas le mode `full` demandé au sens strict d'Erigon. La synchronisation finale et le reboot réel ne doivent pas être considérés comme validés tant que leurs preuves spécifiques ne sont pas présentes.
 
+Diagnostic du 1er novembre vers 22 h 37 : Erigon lisait encore environ 80 Mo en quatre secondes et l'exécution est passée à 26 319 510, mais le dernier bloc validé restait 26 318 998. Les 8 Gio de swap étaient presque pleins et la pression I/O élevée. Le RPC a expiré puis répondu de nouveau lors du contrôle de 22 h 39; la réponse ne prouve pas la synchronisation. Les mesures sont retranscrites dans le README et le rapport PDF, sans capture inventée.
+
+- `17-memoire-22h.png` : vraie capture de terminal à 22 h 41, avec RAM, swap, unité systemd et compteurs OOM.
+- `12-etat-actuel.png` : nouvelle capture à 22 h 41, bloc local 26 318 998 et référence indépendante 26 322 677 (3 679 blocs de retard). Elle remplace une capture historique, sans prétendre à une synchronisation complète.
+
 Le 1er novembre vers 20 h 30, le swap initial était plein et il restait environ 1,1 Gio de RAM disponible. Le second swap de secours a été activé sans redémarrer le processus Erigon; les relevés système et le PDF documentent cette marge supplémentaire. Ce n'est pas une preuve de synchronisation complète.
 
 ## Historique
