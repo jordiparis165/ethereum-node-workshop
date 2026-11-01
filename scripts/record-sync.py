@@ -83,6 +83,9 @@ def record():
     available = ((status.get('activity') or {}).get('memory_bytes') or {}).get('MemAvailable')
     if available is not None and available < 1024**3:
         status['warnings'].append('Less than 1 GiB available RAM')
+    events = (status.get('activity') or {}).get('cgroup_memory_events') or {}
+    if events.get('oom_kill', 0):
+        status['warnings'].append('OOM kill recorded in the current service cgroup; inspect kernel logs')
     deadline = os.environ.get("ETHEREUM_DEADLINE")
     if deadline:
         history = []

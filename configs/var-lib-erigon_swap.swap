@@ -1,0 +1,9 @@
+[Unit]
+Description=Emergency swap reserve for Ethereum node memory spikes
+
+[Swap]
+What=/var/lib/erigon_swap
+Options=pri=10
+
+[Install]
+WantedBy=swap.target

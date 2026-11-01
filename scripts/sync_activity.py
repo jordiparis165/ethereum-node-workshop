@@ -11,6 +11,11 @@ def collect_activity():
         if key in ('MemAvailable', 'Mlocked'):
             memory[key] = int(value.split()[0]) * 1024
     result['memory_bytes'] = memory
+    events = Path('/sys/fs/cgroup/system.slice/erigon.service/memory.events')
+    if events.exists():
+        result['cgroup_memory_events'] = {
+            key: int(value) for key, value in (line.split() for line in events.read_text().splitlines())
+        }
     pid = subprocess.check_output(
         ['systemctl', 'show', 'erigon', '-p', 'MainPID', '--value'], text=True
     ).strip()

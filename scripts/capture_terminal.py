@@ -41,9 +41,18 @@ def capture_terminal(section, destination):
         if not matches:
             raise RuntimeError("No visible evidence terminal found")
         window = matches[0]
+        user32.GetForegroundWindow.restype = ctypes.c_void_p
+        user32.SetForegroundWindow.argtypes = [ctypes.c_void_p]
+        user32.SetWindowPos.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                                       ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                       ctypes.c_int, ctypes.c_uint]
         user32.ShowWindow(window, 3)
+        # A full-screen application can otherwise cover the console in the screenshot.
+        user32.SetWindowPos(window, ctypes.c_void_p(-1), 0, 0, 0, 0, 0x0043)
         user32.SetForegroundWindow(window)
         time.sleep(2)
+        if user32.GetForegroundWindow() != window:
+            raise RuntimeError('Evidence terminal is not foreground; refusing to capture another application')
 
         class Rect(ctypes.Structure):
             _fields_ = [(name, ctypes.c_long) for name in ("left", "top", "right", "bottom")]
@@ -54,6 +63,8 @@ def capture_terminal(section, destination):
         screenshot = ImageGrab.grab(bbox=(
             max(0, rectangle.left), max(0, rectangle.top), rectangle.right, rectangle.bottom,
         ))
+        if user32.GetForegroundWindow() != window:
+            raise RuntimeError('Foreground changed during capture; screenshot discarded')
         if not screenshot.convert("RGB").getbbox():
             raise RuntimeError("Terminal capture is blank")
         screenshot.save(destination)
@@ -64,7 +75,7 @@ def capture_terminal(section, destination):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", choices=["sync", "public", "build", "services", "rpc", "storage"], required=True)
+    parser.add_argument("--section", choices=["sync", "public", "build", "services", "rpc", "storage", "memory"], required=True)
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     capture_terminal(arguments.section, arguments.output)

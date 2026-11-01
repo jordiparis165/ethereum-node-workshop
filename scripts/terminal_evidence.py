@@ -7,6 +7,13 @@ import vps_ssh as watch_sync
 
 
 COMMANDS = {
+    "memory": r"""date -Is
+echo '$ systemd memory target'; systemctl show erigon -p ActiveState -p MainPID -p Environment -p NRestarts
+echo '$ RAM and emergency swap'; free -h; /usr/sbin/swapon --show
+echo '$ swap auto-start'; systemctl is-enabled var-lib-erigon_swap.swap
+echo '$ storage reserve'; df -h / /data
+echo '$ current memory events'; cat /sys/fs/cgroup/system.slice/erigon.service/memory.events
+echo 'GOMEMLIMIT is a soft Go target, not a strict total-RAM cap.'""",
     "storage": r"""python3 - <<'PY'
 import json, shutil, subprocess
 from datetime import datetime

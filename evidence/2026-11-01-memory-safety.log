@@ -1,0 +1,19 @@
+2026-11-01T12:17:04+01:00
+Oct 31 22:32:00 vps-ae86b6b8 kernel: oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/system.slice/erigon.service,task=erigon,pid=3770616,uid=1001
+Oct 31 22:32:00 vps-ae86b6b8 kernel: Out of memory: Killed process 3770616 (erigon) total-vm:8535656828kB, anon-rss:22151656kB, file-rss:284kB, shmem-rss:0kB, UID:1001 pgtables:829292kB oom_score_adj:0
+Nov 01 07:17:56 vps-ae86b6b8 kernel: oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/system.slice/erigon.service,task=erigon,pid=3815592,uid=1001
+Nov 01 07:17:56 vps-ae86b6b8 kernel: Out of memory: Killed process 3815592 (erigon) total-vm:8707908636kB, anon-rss:21975036kB, file-rss:240kB, shmem-rss:0kB, UID:1001 pgtables:942620kB oom_score_adj:0
+Nov 01 12:16:05 vps-ae86b6b8 systemd[1]: erigon.service: Deactivated successfully.
+Nov 01 12:16:05 vps-ae86b6b8 systemd[1]: Stopped erigon.service - Erigon Ethereum Execution and Caplin Consensus Client.
+Nov 01 12:16:08 vps-ae86b6b8 erigon[3868913]: [INFO] [11-01|12:16:08.956] [mem] GOMEMLIMIT already set, leaving it alone limit="14.0 GB"
+MainPID=3868913
+Environment=GOMEMLIMIT=14GiB ERIGON_SNAPSHOT_MADV_RND=false
+ActiveState=active
+NAME                 TYPE SIZE USED PRIO
+/var/lib/erigon_swap file   4G 9.7M   10
+               total        used        free      shared  buff/cache   available
+Mem:            22Gi       5.1Gi       8.7Gi       248Ki       9.5Gi        17Gi
+Swap:          4.0Gi       9.7Mi       4.0Gi
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       197G  167G   22G  89% /
+/dev/sdb        984G  805G  169G  83% /data
