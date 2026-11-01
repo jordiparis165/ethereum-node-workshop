@@ -1,0 +1,5 @@
+MainPID=3874187
+RequiresMountsFor=/var/lib/erigon-hot /data
+active
+TARGET SOURCE                                    FSTYPE OPTIONS
+/data  UUID=b2abac69-fe73-475f-80f7-e24240365af6 ext4   defaults,noatime

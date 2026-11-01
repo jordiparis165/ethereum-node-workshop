@@ -21,9 +21,11 @@ class ForecastTests(unittest.TestCase):
         self.assertIsNone(result["eta_seconds"])
 
     def test_timestamp_catchup_includes_elapsed_network_time(self):
-        first = self.sample("2026-10-31T11:50:00+00:00", 3600, "0x1")
-        current = self.sample("2026-10-31T12:00:00+00:00", 2400)
-        result = forecast(current, [first], DEADLINE)
+        history = [self.sample('2026-10-31T11:30:00+00:00', 6000, '0x1'),
+                   self.sample('2026-10-31T11:40:00+00:00', 4800, '0x2'),
+                   self.sample('2026-10-31T11:50:00+00:00', 3600, '0x3')]
+        current = self.sample("2026-10-31T12:00:00+00:00", 2400, '0x4')
+        result = forecast(current, history, DEADLINE)
         self.assertEqual(result["eta_seconds"], 1050)
         self.assertTrue(result["on_track_estimate"])
 
@@ -37,9 +39,10 @@ class ForecastTests(unittest.TestCase):
         self.assertIsNone(result["eta_seconds"])
 
     def test_clock_aging_with_progress_can_mean_no_catchup(self):
-        first = self.sample("2026-10-31T11:50:00+00:00", 3600, "0x1")
-        current = self.sample("2026-10-31T12:00:00+00:00", 3800)
-        result = forecast(current, [first], DEADLINE)
+        history = [self.sample(f'2026-10-31T11:{minute}:00+00:00', age, hex(block))
+                   for minute, age, block in [('30', 3200, 1), ('40', 3400, 2), ('50', 3600, 3)]]
+        current = self.sample("2026-10-31T12:00:00+00:00", 3800, '0x4')
+        result = forecast(current, history, DEADLINE)
         self.assertEqual(result["state"], "no_catchup_observed")
         self.assertIsNone(result["eta_seconds"])
 
@@ -61,6 +64,20 @@ class ForecastTests(unittest.TestCase):
                          "near_head_waiting_confirmation")
         current["fully_synced"] = True
         self.assertEqual(forecast(current, [], DEADLINE)["state"], "verified_synced")
+
+    def test_one_jump_in_short_window_cannot_predict_whole_sync(self):
+        first = self.sample('2026-10-31T11:59:00+00:00', 40000, '0x1')
+        current = self.sample('2026-10-31T12:01:00+00:00', 28120, '0x2')
+        self.assertIsNone(forecast(current, [first], DEADLINE)['eta_seconds'])
+
+    def test_previous_process_cycles_are_not_reused(self):
+        history = [self.sample(f'2026-10-31T11:{minute}:00+00:00', age, hex(block))
+                   for minute, age, block in [('30', 6000, 1), ('40', 4800, 2), ('50', 3600, 3)]]
+        for sample in history:
+            sample['activity'] = {'process': {'pid': 1}}
+        current = self.sample('2026-10-31T12:00:00+00:00', 2400, '0x4')
+        current['activity'] = {'process': {'pid': 2}}
+        self.assertIsNone(forecast(current, history, DEADLINE)['eta_seconds'])
 
 
 if __name__ == "__main__":

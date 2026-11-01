@@ -1,0 +1,5 @@
+{
+  "passed": false,
+  "stage": "not_requested",
+  "reason": "Need saved repeated full-sync proof and at least one hour before the deadline."
+}

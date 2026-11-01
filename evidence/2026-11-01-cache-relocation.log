@@ -1,0 +1,14 @@
+{"source": "/home/adm-mesifi/.cache/go-build", "target": "/data/ethereum-build-cache/go-build", "already_relocated": true}
+Nov 01 13:20:25 vps-ae86b6b8 python3[3873265]: {"source": "/home/adm-mesifi/.cache/go-build", "target": "/data/ethereum-build-cache/go-build", "verified_bytes": 3142604556, "all_regular_files_sha256_verified": true}
+Nov 01 13:28:16 vps-ae86b6b8 systemd[1]: Stopped ethereum-build-cache-relocation.service - [systemd-run] /usr/bin/python3 /data/ethereum-monitor/relocate-build-caches.py.
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       197G  164G   29G  86% /
+/dev/sdb        984G  814G  160G  84% /data
+{
+  "existing_files_linked": 461,
+  "new_files_directory": "/data/erigon-domain-active",
+  "existing_fast_files_retained": "/var/lib/erigon-hot/domain",
+  "temporary_files_not_reused": 0,
+  "observed_at": "2026-11-01T12:20:23.523086+00:00",
+  "phase": "activated"
+}

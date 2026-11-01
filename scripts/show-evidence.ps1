@@ -3,7 +3,9 @@ $ErrorActionPreference = 'Stop'
 $Host.UI.RawUI.WindowTitle = "Ethereum node evidence - $Section"
 Clear-Host
 Write-Host "Ethereum mainnet node - VPS terminal capture: $Section" -ForegroundColor Cyan
-if ($Section -eq 'public') {
+if ($Section -eq 'reference') {
+    Write-Host "SSH status and independent mainnet RPC requests from this PC." -ForegroundColor DarkGray
+} elseif ($Section -eq 'public') {
     Write-Host "HTTPS and WebSocket requests sent from this PC to the VPS." -ForegroundColor DarkGray
 } else {
     Write-Host "Commands are executed over SSH against the school VPS." -ForegroundColor DarkGray

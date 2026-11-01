@@ -1,12 +1,13 @@
 [Unit]
 Description=Record Ethereum RPC and state commitment progress
 After=erigon.service
+RequiresMountsFor=/data
 
 [Service]
 Type=oneshot
 User=adm-mesifi
 Group=adm-mesifi
-Environment=ETHEREUM_DEADLINE=2026-10-31T23:59:00+01:00
+Environment=ETHEREUM_DEADLINE=2026-11-01T23:59:00+01:00
 ExecStart=/usr/bin/python3 /data/ethereum-monitor/record-sync.py
 TimeoutStartSec=90
 NoNewPrivileges=true

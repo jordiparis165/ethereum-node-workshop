@@ -1,0 +1,12 @@
+{
+  "verified_date": "2026-11-01",
+  "source": "Authenticated Google Sheets connector readback",
+  "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1UGBgVgMxLx-VxrtgCIDSuw3SQ-rjui-Y4uLgNXOls2Y/edit",
+  "sheet": "Feuille 1",
+  "cell": "F22",
+  "student": "Jordi PARIS",
+  "vm_id": "TP-MESIFI590426-07",
+  "value": "https://github.com/jordiparis165/ethereum-node-workshop",
+  "already_present": true,
+  "written_by_this_run": false
+}

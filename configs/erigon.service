@@ -1,6 +1,7 @@
 [Unit]
 Description=Erigon Ethereum Execution and Caplin Consensus Client
 After=network-online.target
+RequiresMountsFor=/data /var/lib/erigon-hot
 Wants=network-online.target
 
 [Service]

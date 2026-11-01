@@ -32,8 +32,23 @@ for name in ('chaindata', 'snapshots/domain', 'caplin/indexing'):
  print(name, '->', Path('/data/erigon',name).resolve())
 print('Fast-volume free GiB =', round(shutil.disk_usage('/var/lib/erigon-hot').free/1024**3,2))
 PY""",
-    "build": r"""echo '$ Erigon v3.8.1 (source build)'; /data/ethereum-src/erigon-v3.8.1/build/bin/erigon --version; echo '$ Previous Geth/Lighthouse source builds'; /data/ethereum-src/geth-src/build/bin/geth version | head -3; /home/adm-mesifi/.cargo/bin/lighthouse --version""",
-    "services": r"""echo '$ systemctl is-active erigon geth lighthouse'; systemctl is-active erigon.service geth.service lighthouse.service || true; echo '$ systemctl is-enabled erigon geth lighthouse'; systemctl is-enabled erigon.service geth.service lighthouse.service || true; echo '$ CPU, RAM and disk'; nproc; free -h; df -h /data; echo '$ kernel settings'; cat /proc/sys/vm/overcommit_memory /proc/sys/vm/max_map_count; echo '$ RPC listeners'; ss -lntup | grep -E ':(8545|8546|30303|6061)\b' || true""",
+    "build": r"""date -Is
+echo '$ source tag and commit'; git -C /data/ethereum-src/erigon-v3.8.1 describe --tags --always; git -C /data/ethereum-src/erigon-v3.8.1 rev-parse HEAD
+echo '$ completion of actual build log'; tail -n 4 /data/ethereum-src/erigon-build-final.log
+echo '$ installed binary'; /data/ethereum-src/erigon-v3.8.1/build/bin/erigon --version
+echo '$ Go build metadata'; go version -m /data/ethereum-src/erigon-v3.8.1/build/bin/erigon | head -3
+echo '$ consensus sources included in this source tree'; git -C /data/ethereum-src/erigon-v3.8.1 ls-files cl/phase1/stages | head -3
+echo 'Caplin is compiled into the Erigon binary; no external consensus binary is used.'""",
+    "services": r"""date -Is
+python3 - <<'PY'
+import subprocess
+for unit in ('erigon','nginx','ethereum-sync-monitor.timer','var-lib-erigon_swap.swap'):
+ def state(action):return subprocess.run(['systemctl',action,unit],text=True,capture_output=True).stdout.strip()
+ print(unit,':',state('is-active'),'; boot =',state('is-enabled'))
+PY
+echo '$ RAM and storage'; free -h; df -h / /data
+echo '$ RPC listeners'; ss -lnt | grep -E ':(9443|8545|8546|8551|6061)\b'
+echo 'Enabled units do not prove a completed reboot test.'""",
     "rpc": r"""python3 - <<'PY'
 import json, urllib.request
 for method in ('eth_chainId', 'web3_clientVersion', 'net_peerCount', 'eth_blockNumber', 'eth_syncing'):
@@ -86,10 +101,28 @@ echo '$ Disk and RAM'; df -h /data; free -h""",
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", choices=[*COMMANDS, "public"], required=True)
+    parser.add_argument("--section", choices=[*COMMANDS, "public", "reference"], required=True)
     section = parser.parse_args().section
     if section == "public":
         runpy.run_path(str(Path(__file__).with_name("test-public-rpc.py")), run_name="__main__")
+        return
+    if section == 'reference':
+        import json
+        from watch_until_synced import read_status
+        client = watch_sync.connect(watch_sync.load_env(watch_sync.ENV_PATH))
+        try:
+            status = read_status(client)
+        finally:
+            client.close()
+        print('Observation UTC =', status['observed_at'])
+        print('Erigon service =', status['service'])
+        print('Local validated RPC head =', int(status['block'], 16) if not status.get('rpc_error') else 'unavailable')
+        print('Local head age seconds =', status['head_age_seconds'])
+        print('eth_syncing =', status['eth_syncing'] if not isinstance(status['eth_syncing'],dict) else 'in progress')
+        print('Independent mainnet reference:')
+        print(json.dumps(status.get('reference', {'error':status.get('reference_error')}), indent=2))
+        print('A local batch target is NOT the current mainnet head.')
+        print('Full confirmation requires 3 advancing observations over at least 2 minutes.')
         return
     config = watch_sync.load_env(watch_sync.ENV_PATH)
     client = watch_sync.connect(config)

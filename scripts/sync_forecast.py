@@ -37,7 +37,7 @@ def forecast(status, history, deadline):
         return dict(result, state="waiting_for_rpc_head")
     if status["head_age_seconds"] <= 300:
         return dict(result, state="near_head_waiting_confirmation")
-    start = now - timedelta(minutes=30)
+    start = now - timedelta(hours=12)
     if migration.get("observed_at"):
         start = max(start, datetime.fromisoformat(migration["observed_at"]))
     points = []
@@ -46,25 +46,51 @@ def forecast(status, history, deadline):
             when = datetime.fromisoformat(sample["observed_at"])
             age = sample.get("head_age_seconds")
             block = int(sample.get("block", "0x0"), 16)
-            if start <= when <= now and isinstance(age, (int, float)) and age >= 0 and block > 0:
+            pid = ((status.get('activity') or {}).get('process') or {}).get('pid')
+            sample_pid = ((sample.get('activity') or {}).get('process') or {}).get('pid')
+            if (start <= when <= now and isinstance(age, (int, float)) and age >= 0 and block > 0
+                    and (pid is None or sample_pid == pid)):
                 points.append((when, age, block))
         except (ValueError, TypeError, KeyError):
             continue
     points.sort()
-    if len(points) < 2 or len({point[2] for point in points}) < 2:
+    transitions = []
+    for point in points:
+        if not transitions or point[2] != transitions[-1][2]:
+            transitions.append(point)
+    # The first sample may start halfway through a batch. Exclude that interval,
+    # and require two complete publication-to-publication cycles.
+    if len(transitions) < 4:
         return dict(result, state="waiting_for_validated_progress")
-    first, last = points[0], points[-1]
+    transitions = transitions[1:]
+    cycles = list(zip(transitions, transitions[1:]))
+    if any(right[2] <= left[2] for left, right in cycles):
+        return dict(result, state='head_reorganization_collect_new_samples')
+    first, last = transitions[0], transitions[-1]
     duration = (last[0] - first[0]).total_seconds()
     if duration < 120:
         return dict(result, state="collecting_rate_samples")
+    if (now - last[0]).total_seconds() > max(1800, 2 * max(
+            (right[0] - left[0]).total_seconds() for left, right in cycles)):
+        return dict(result, state='stale_cycle_estimate_inspect_activity')
     catchup = (first[1] - last[1]) / duration
+    rates = [(left[1] - right[1]) / (right[0] - left[0]).total_seconds()
+             for left, right in cycles if right[0] > left[0]]
     result.update(window_seconds=duration, validated_blocks=last[2] - first[2],
+                  complete_cycles=len(cycles),
                   lag_reduction_seconds_per_second=round(catchup, 4))
     if catchup <= 0:
         return dict(result, state="no_catchup_observed")
     eta = max(0, (status["head_age_seconds"] - 300) / catchup)
     finish = now + timedelta(seconds=eta)
+    scenarios = {}
+    for name, rate in (('optimistic', max(rates)), ('central', catchup), ('pessimistic', min(rates))):
+        seconds = max(0, (status['head_age_seconds'] - 300) / rate) if rate > 0 else None
+        scenarios[name] = {'eta_seconds': round(seconds) if seconds is not None else None,
+                           'finish_utc': (now + timedelta(seconds=seconds)).astimezone(timezone.utc).isoformat()
+                           if seconds is not None else None}
     return dict(result, state="conditional_estimate", eta_seconds=round(eta),
+                scenarios=scenarios,
                 estimated_finish_utc=finish.astimezone(timezone.utc).isoformat(),
                 on_track_estimate=finish <= end,
-                caveat="Assumes the observed catch-up rate continues; final RPC confirmation is required.")
+                caveat="Scenarios use complete validated cycles from the current process. Pending execution is not credited. No statistical probability; final RPC confirmation is required.")

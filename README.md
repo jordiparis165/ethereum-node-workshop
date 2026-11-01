@@ -2,9 +2,30 @@
 
 Pour ce TD, j’ai d’abord installé Geth avec Lighthouse. La synchronisation avançait, mais les estimations de Geth dépassaient le délai du rendu. Après le conseil du prof, j’ai compilé Erigon depuis ses sources et je l’utilise maintenant avec Caplin, son client de consensus intégré. Les anciennes bases Geth et Lighthouse sont gardées sur le VPS, mais leurs services sont arrêtés.
 
+## État du rendu au 1er novembre
+
+<!-- LIVE_STATUS_BEGIN -->
+Relevé UTC : **2026-11-01T12:45:19.757947+00:00**. Bloc RPC : **26316998**. Écart avec la référence : **3007 blocs**.
+
+Synchronisation : `not_yet_verified`. Reboot : `not_yet_verified`.
+<!-- LIVE_STATUS_END -->
+
+Le dépôt est consultable ici : **https://github.com/jordiparis165/ethereum-node-workshop**. Le rapport est uniquement en PDF : [RAPPORT-ETHEREUM.pdf](RAPPORT-ETHEREUM.pdf).
+
+L'état vérifiable le plus récent est dans [evidence/submission-audit.json](evidence/submission-audit.json), avec les réponses RPC et les contrôles système associés. Ne pas déduire une synchronisation terminée des captures historiques.
+
+- Compilation depuis les sources : Erigon v3.8.1, qui inclut le code de Caplin dans le même binaire. Ce ne sont pas deux téléchargements de binaires précompilés.
+- HTTPS/WSS, authentification, TLS, namespaces `eth` et `web3` : testés depuis le PC. Les API `admin`, `debug` et `personal` sont désactivées.
+- Services activés au démarrage : configurés. Le résultat du test réel de reboot figure dans `evidence/reboot-verification.json` lorsqu'il est exécuté.
+- Synchronisation complète : sa validation exige trois observations espacées, une tête récente et une comparaison avec une référence mainnet indépendante; consulter l'état horodaté ci-dessous et les preuves JSON.
+- **Écart au sujet : `--prune.mode=minimal`, pas `--prune.mode=full`.** Je ne présente pas ce mode comme conforme au mode full d'Erigon. La [documentation officielle](https://docs.erigon.tech/fundamentals/pruning-modes) demande une resynchronisation pour changer de mode; je préserve donc la base existante plutôt que de repartir de zéro avant l'échéance.
+- Le lien du dépôt était déjà présent dans le tableur, cellule `Feuille 1!F22`, sur la ligne Jordi PARIS / TP-MESIFI590426-07. Lecture de contrôle effectuée le 1er novembre, sans modification : [preuve du contrôle](evidence/spreadsheet-submission.json).
+
+Le nouvel objectif de rendu est le **1er novembre 2026 à 23 h 59, heure de Paris**. Les mesures ci-dessous datant du 31 octobre sont conservées comme historique.
+
 ## La VM
 
-Le VPS a 8 vCPU, 22 Gio de RAM et un volume `/data` de 984 Go. Le sujet indique 2 To, mais le prof a précisé le 30 octobre que 1 To devrait suffire. Erigon tourne en mode minimal, prévu pour tenir dans cette capacité. La machine a assez de mémoire pour démarrer, mais son disque est rotatif et plus lent que le NVMe utilisé dans les mesures officielles d’Erigon.
+Le VPS Debian 13 a 8 vCPU, environ 22 Gio de RAM, un volume système de 197 Gio et un volume `/data` de 984 Gio. Le sujet indique 2 To, mais le prof a précisé le 30 octobre que 1 To devrait suffire. Le volume `/data` a une latence mesurée bien plus élevée que le volume système. Le drapeau virtuel `ROTA=1` ne prouve pas le type de disque physique de l'hébergeur.
 
 ## Compilation
 
@@ -24,6 +45,49 @@ GOMAXPROCS=6 make erigon
 
 Le binaire compilé est `build/bin/erigon`. Erigon lance Caplin dans le même processus, donc il n’y a pas de service Lighthouse séparé dans la configuration finale. Caplin télécharge son checkpoint de consensus puis suit la chaîne avec Erigon.
 
+## Refaire l'installation
+
+Ces chemins correspondent au VPS du TD et au compte Linux `adm-mesifi`; adapter les champs `User`, `Group` et les chemins des unités pour une autre machine. Ne pas lancer une nouvelle installation ou une migration sur la base qui synchronise déjà.
+
+1. Sur une machine vierge, installer les dépendances :
+
+```bash
+sudo apt update
+sudo apt install git curl ca-certificates build-essential pkg-config cmake clang libssl-dev python3 python3-venv nginx openssl
+sudo install -d -o adm-mesifi -g adm-mesifi /data/ethereum-src /data/erigon /data/ethereum-monitor
+```
+
+2. Installer Go 1.26 ou plus récent depuis [go.dev/doc/install](https://go.dev/doc/install), puis compiler le tag avec `GOMAXPROCS=6 make erigon`. Les commandes de la section Compilation montrent le toolchain effectivement utilisé sur cette VM. Le commit source observé est `cf6f14132ff042df33b8ce64b0114daeb0d15145`; le journal de build et l'identité du binaire sont conservés dans les preuves.
+
+3. Depuis une copie de ce dépôt sur la VM, installer les unités et réglages :
+
+```bash
+sudo install -m 644 configs/99-erigon.conf /etc/sysctl.d/99-erigon.conf
+sudo sysctl --system
+sudo install -m 644 configs/erigon.service /etc/systemd/system/erigon.service
+sudo install -d /etc/systemd/system/erigon.service.d
+sudo install -m 644 configs/sync-performance.conf configs/memory-safety.conf /etc/systemd/system/erigon.service.d/
+sudo install -m 644 configs/var-lib-erigon_swap.swap /etc/systemd/system/
+sudo python3 scripts/configure-memory-safety.py
+sudo systemctl daemon-reload
+sudo systemctl enable --now erigon.service
+```
+
+`GOMEMLIMIT=14GiB` laisse une marge au système et au cache disque. C'est une cible Go souple, pas un plafond strict. Le swap de 4 Gio est un secours pour les pointes mémoire. Les symlinks de stockage de cette VM résultent d'une migration séparée et vérifiée; ils ne sont pas nécessaires pour une première installation sur un volume rapide suffisamment grand.
+
+4. Installer le monitoring :
+
+```bash
+sudo install -o adm-mesifi -g adm-mesifi -m 644 scripts/record-sync.py scripts/sync_activity.py scripts/sync_forecast.py /data/ethereum-monitor/
+sudo install -m 644 configs/ethereum-sync-monitor.service configs/ethereum-sync-monitor.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now ethereum-sync-monitor.timer
+```
+
+5. Sur le PC, installer `requirements.txt`, renseigner le `.env` local à partir de `.env.example`, puis lancer `python scripts/deploy-rpc-proxy.py`. Ce script installe le certificat, l'authentification et la configuration Nginx par SSH; ses identifiants restent dans `rpc-access.secret`, jamais dans Git. Tester avec `python scripts/test-public-rpc.py`. Le certificat auto-signé public du dépôt doit être explicitement approuvé par le client de test.
+
+6. Actualiser les preuves avec `python scripts/prepare_submission.py`, puis générer de vraies captures avec `python scripts/capture_terminal.py --section sync --output screenshots/04-synchronisation.png`. Les captures exigent une session Windows ouverte; le script refuse de capturer si le terminal n'est pas au premier plan.
+
 ## Configuration
 
 Le service [`configs/erigon.service`](configs/erigon.service) démarre Erigon sur mainnet en mode `minimal`. Il est activé avec systemd. Les endpoints RPC HTTP et WebSocket utilisent les ports `8545` et `8546`, avec seulement les namespaces `eth`, `net` et `web3`. Les métriques restent locales sur `6061`. Le port Engine API ne sert pas à une connexion externe; Caplin est intégré.
@@ -31,6 +95,12 @@ Le service [`configs/erigon.service`](configs/erigon.service) démarre Erigon su
 Le fichier [`configs/99-erigon.conf`](configs/99-erigon.conf) règle `vm.overcommit_memory` et `vm.max_map_count`, comme recommandé au démarrage par Erigon. Le dossier Geth reste dans `/data/ethereum/geth` et celui de Lighthouse dans `/data/ethereum/lighthouse`, en cas de retour arrière.
 
 ## Vérifications
+
+Le script de finition est `python scripts/watch_until_synced.py`. Il utilise le `.env` existant, sans mot de passe dans la commande. Il compare le hash de notre bloc avec une référence mainnet indépendante, puis attend trois observations cohérentes sur au moins deux minutes avant de sauvegarder une preuve de synchronisation. Une tête ancienne avec `eth_syncing=false` ne passe pas ce contrôle.
+
+Après publication de ces preuves, le test de reboot préparé ne se déclenche qu'avec au moins une heure de marge avant le 1er novembre à 23 h 59. Il doit constater un boot ID différent, des services actifs et activés, puis une nouvelle qualification de synchronisation. Ses garde-fous ont été testés; cela ne signifie pas que le reboot réel a déjà eu lieu. Une photographie du résultat sera ajoutée seulement si une vraie capture est possible.
+
+Si le nœud n'est pas prêt à 23 h 30, le script prépare et publie un état honnête avant l'échéance, puis continue son suivi. Le PC doit rester allumé et connecté pour les tests publics, les captures et GitHub. Le timer du VPS continue ses relevés indépendamment, mais il ne dispose pas des identifiants GitHub et ne peut pas publier à la place du PC. Une VM devenue inaccessible est signalée comme telle; les anciennes mesures ne sont pas présentées comme nouvelles.
 
 Les outils de suivi sur mon PC utilisent Python : `pip install -r requirements.txt`. Ils lisent un `.env` local au format de [`.env.example`](.env.example); sur mon poste, ils reprennent directement le fichier `btc/.env` déjà présent dans le dossier parent. Les secrets restent hors du dépôt. Les captures automatiques demandent Windows et une session ouverte, mais le suivi systemd sur le VPS fonctionne indépendamment.
 
@@ -110,3 +180,13 @@ Le script `scripts/configure-memory-safety.py` crée aussi un fichier de swap de
 Une relance propre a été demandée vers 12 h 12 pour appliquer la cible Go. Le script `scripts/restart-memory-safety.py` retire temporairement la limite de temps d'arrêt, puis restaure la configuration après la relance; il n'envoie pas de SIGKILL. Le suivi relève désormais aussi les événements OOM du cgroup courant. Juste avant l'intervention, la tête RPC avait atteint 26 316 998, avec environ 8 h 27 de retard. Ce changement vise à réduire les incidents mémoire, sans garantie de délai de synchronisation.
 
 L'arrêt a terminé normalement à 12:16:05, puis le journal confirme `GOMEMLIMIT already set` avec la nouvelle valeur. Le swap utilisé est redescendu à environ 10 Mio après la fermeture de l'ancien processus. Cela confirme l'application de la configuration, pas encore l'absence de futures pointes. Les événements du noyau et les contrôles restent dans `evidence/2026-11-01-memory-safety.log`.
+
+## Protection de l'espace le 1er novembre
+
+Après 13 h, une fusion de commitment avec environ 24 Gio d'entrées a créé un temporaire de plus de 13 Gio sur le volume système. J'ai ramené la réserve ext4 de 8 à 4 Gio, en conservant environ 4 Gio réservés aux services privilégiés. La preuve avant/après et le nombre original de blocs réservés sont dans `evidence/2026-11-01-root-reserve.log`. Ce n'est ni un formatage ni un redimensionnement.
+
+Le cache de compilation `~/.cache/go-build`, environ 3 Gio, a été copié vers `/data/ethereum-build-cache/go-build`, vérifié par SHA-256 puis remplacé par un lien au chemin initial. La copie secondaire des modules Go a été interrompue quand elle n'était plus nécessaire; le cache des modules original reste intact. Sa copie partielle est conservée sur `/data` et n'est pas utilisée. Je ne compte donc pas ces 2,5 Gio comme libérés.
+
+`scripts/route-domain-writes.py` a ensuite appliqué un placement distinct pour les nouvelles écritures : `/data/erigon/snapshots/domain` pointe maintenant vers `/data/erigon-domain-active`, répertoire sur le grand volume. Il contient des liens vers les fichiers existants, dont ceux restés sur le disque rapide. Les futurs snapshots et fichiers temporaires sont créés sur `/data`, pour ne plus faire grossir les gros temporaires de fusion sur le volume système. Les originaux restent présents. La bascule a terminé vers 13:20 après un arrêt propre, sans resynchronisation complète.
+
+Le volume système est revenu à environ 29 Gio disponibles, en combinant la libération des temporaires par Erigon, le réglage de réserve et le déplacement vérifié du cache. Je n'attribue pas toute cette libération à un seul réglage, et ce placement ne prouve pas une accélération. Le but est d'éviter une saturation du disque système. Les 38 tests passent sur Linux; le module de placement est testé dans un répertoire temporaire, sans modifier la vraie base pendant les tests.

@@ -1,0 +1,12 @@
+2026-11-01T13:13:13+01:00
+Block count:              52396027
+Reserved block count:     2103313
+Block size:               4096
+tune2fs 1.47.2 (1-Jan-2025)
+Setting reserved blocks percentage to 2% (1047920 blocks)
+Block count:              52396027
+Reserved block count:     1047920
+Block size:               4096
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       197G  179G   14G  93% /
+active

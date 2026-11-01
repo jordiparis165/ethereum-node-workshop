@@ -3,10 +3,12 @@ import json
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from capture_terminal import capture_terminal
+from reference_chain import reference_status
+from sync_validation import candidate, Qualification
 
 ROOT = Path(__file__).resolve().parents[1]
 import vps_ssh as watch_sync
@@ -42,7 +44,7 @@ migration_path=Path('/var/lib/erigon-hot/migration-status.json')
 migration=json.loads(migration_path.read_text()) if migration_path.exists() else None
 monitor_path=Path('/data/ethereum-monitor/latest.json')
 forecast=(json.loads(monitor_path.read_text()).get('forecast') if monitor_path.exists() else None)
-print(json.dumps({"observed_at":__import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),"eth_syncing":syncing,"block":block,"head_age_seconds":age,"rpc_error":rpc_error,"service":subprocess.run(["systemctl","is-active","erigon.service"],capture_output=True,text=True).stdout.strip(),"progress":progress[-12:],"caplin":caplin[-12:],"errors":errors[-12:],"storage_migration":migration,"forecast":forecast,"disk_free_bytes":__import__("shutil").disk_usage("/data").free}))
+print(json.dumps({"observed_at":__import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),"eth_syncing":syncing,"block":block,"head_hash":latest['hash'] if rpc_error is None and latest else None,"head_age_seconds":age,"rpc_error":rpc_error,"service":subprocess.run(["systemctl","is-active","erigon.service"],capture_output=True,text=True).stdout.strip(),"progress":progress[-12:],"caplin":caplin[-12:],"errors":errors[-12:],"storage_migration":migration,"forecast":forecast,"disk_free_bytes":__import__("shutil").disk_usage("/data").free}))
 PY'''
 
 
@@ -57,47 +59,100 @@ def read_status(client):
     code, out, err = watch_sync.run_remote(client, REMOTE)
     if code:
         raise RuntimeError(err or f"remote command exited {code}")
-    return json.loads(out.strip())
+    status = json.loads(out.strip())
+    if status.get('rpc_error') or int(status.get('block', '0x0'), 16) == 0:
+        status['reference_error'] = 'Local RPC head unavailable; no remaining-block count calculated.'
+        return status
+    try:
+        status['reference'] = reference_status(int(status['block'], 16), status.get('head_hash'))
+    except Exception as exc:
+        status['reference_error'] = f'{type(exc).__name__}: {exc}'
+    return status
 
 
 def fully_synced(status):
-    return (status["service"] == "active" and status["eth_syncing"] is False and
-            int(status["block"], 16) > 0 and
-            status["head_age_seconds"] is not None and 0 <= status["head_age_seconds"] <= 300)
+    return candidate(status)
+
+
+def capture_safely(section, filename):
+    try:
+        capture_terminal(section, ROOT / 'screenshots' / filename)
+        return True
+    except Exception as exc:
+        log(f'Capture unavailable ({section}): {exc}; no replacement image fabricated.')
+        return False
+
+
+def publish_current(message, extras=()):
+    result = subprocess.run([sys.executable, str(ROOT / 'scripts/prepare_submission.py')], cwd=ROOT)
+    names = ['README.md', 'EVIDENCE.md', 'RAPPORT-ETHEREUM.pdf', 'evidence/current-status.json',
+             'evidence/current-monitor.json', 'evidence/current-system-checks.json',
+             'evidence/current-public-rpc.log', 'evidence/submission-audit.json', *extras]
+    names = [name for name in names if (ROOT / name).exists()]
+    subprocess.run(['git', 'add', '--', *names], cwd=ROOT, check=True)
+    if subprocess.run(['git', 'diff', '--cached', '--quiet', '--', *names], cwd=ROOT).returncode:
+        subprocess.run(['git', 'commit', '--only', '-m', message, '--', *names], cwd=ROOT, check=True)
+    subprocess.run(['git', 'push', 'origin', 'master'], check=True, cwd=ROOT)
+    return result.returncode == 0
 
 
 def capture_and_publish(status):
-    screenshots = ROOT / "screenshots"
-    capture_terminal("sync", screenshots / "04-synchronisation.png")
-    log("Full sync verified remotely; captured the visible Windows terminal.")
+    proof = ROOT / 'evidence/first-verified-sync.json'
+    proof.parent.mkdir(exist_ok=True)
+    if not proof.exists():
+        proof.write_text(json.dumps(status, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+    if not (ROOT / '.sync-complete').exists():
+        (ROOT / '.sync-complete').write_text(status['observed_at'], encoding='utf-8')
+    captures = []
+    for section, filename in [('sync', '04-synchronisation.png'), ('reference', '12-etat-actuel.png'),
+                              ('public', '11-tests-publics.png'), ('services', '13-services-enabled.png')]:
+        if capture_safely(section, filename):
+            captures.append('screenshots/' + filename)
+    first_proof = json.loads(proof.read_text(encoding='utf-8'))
+    first_proof['screenshots_refreshed'] = captures
+    first_proof['screenshots_refreshed_at'] = status['observed_at']
+    proof.write_text(json.dumps(first_proof, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+    evidence = ROOT / 'EVIDENCE.md'
+    note = ('\n\n## Synchronisation constatée\n\nTrois observations sur au moins deux minutes ont confirmé '
+            'une tête récente, eth_syncing=false et un hash identique à la référence mainnet, avec au plus '
+            'quatre blocs de retard. Les relevés sont dans `evidence/first-verified-sync.json`. '
+            'Les captures gardent leur propre horodatage; un échec de capture ne génère jamais une image de remplacement.\n')
+    existing = evidence.read_text(encoding='utf-8')
+    if '## Synchronisation constatée' not in existing:
+        evidence.write_text(existing + note, encoding='utf-8', newline='\n')
+    if not publish_current('Publish independently verified synchronization evidence',
+                           ['.sync-complete', 'evidence/first-verified-sync.json', *captures]):
+        raise RuntimeError('Sync proof published, but public endpoint checks need attention')
+    # Preserve and publish synchronization evidence BEFORE the workshop reboot test.
+    from verify_reboot import run
+    reboot = run(read_status)
+    log('Reboot proof stage: ' + reboot['stage'])
+    reboot_captures = []
+    if reboot.get('passed'):
+        for section, filename in [('services', '14-apres-reboot.png'), ('reference', '15-sync-apres-reboot.png')]:
+            if capture_safely(section, filename):
+                reboot_captures.append('screenshots/' + filename)
+    public_ok = publish_current('Update report with guarded reboot verification result',
+                                ['evidence/reboot-verification.json', *reboot_captures])
+    log('Latest proof, audit and French PDF pushed to GitHub. Inspect remaining compliance gaps.')
+    return public_ok and (reboot.get('passed') or reboot['stage'] == 'not_requested')
 
-    marker = ROOT / ".sync-complete"
-    marker.write_text(datetime.now().astimezone().strftime("%d/%m/%Y à %H:%M %Z"), encoding="utf-8")
-    evidence = ROOT / "EVIDENCE.md"
-    evidence.write_text(
-        "# Vérifications et preuves\n\nLes captures de `screenshots/` montrent de vrais terminaux Windows. "
-        "Les contrôles du nœud sont exécutés par SSH; les tests RPC publics partent du PC vers le VPS.\n\n"
-        "La dernière capture `04-synchronisation.png` a été prise après vérification que le service Erigon "
-        "est actif, que `eth_syncing=false`, que le bloc courant est non nul et que son horodatage "
-        "est à moins de cinq minutes de l'heure du VPS. Erigon intègre Caplin pour le consensus. "
-        "Le relevé JSON correspondant est dans `evidence/first-verified-sync.json`.\n\n"
-        "`05-rpc-public.png` prouve les tests HTTPS/WSS avec authentification et vérification TLS. "
-        "Les extraits de l'incident et des premières mesures restent dans `evidence/`. "
-        "Le timer sur la VM garde également ses propres mesures. Le reboot complet reste à tester; "
-        "le démarrage automatique est configuré mais cela ne remplace pas un test de redémarrage.\n",
-        encoding="utf-8")
-    verified = ROOT / "evidence" / "first-verified-sync.json"
-    verified.parent.mkdir(exist_ok=True)
-    verified.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
-    subprocess.run([sys.executable, str(ROOT / "scripts" / "build_report_pdf.py")], check=True, cwd=ROOT)
-    subprocess.run(["git", "add", ".sync-complete", "EVIDENCE.md", "RAPPORT-ETHEREUM.pdf", "screenshots/04-synchronisation.png", "evidence/first-verified-sync.json"], check=True, cwd=ROOT)
-    subprocess.run(["git", "commit", "-m", "Update evidence after full Ethereum synchronization"], check=True, cwd=ROOT)
-    subprocess.run(["git", "push", "origin", "master"], check=True, cwd=ROOT)
-    log("Updated French report, PDF and screenshots pushed to GitHub.")
+
+def publish_deadline_snapshot(status):
+    (ROOT / 'evidence/deadline-status.json').write_text(
+        json.dumps(status, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+    captures = []
+    for section, filename in [('reference', '12-etat-actuel.png'), ('public', '11-tests-publics.png')]:
+        if capture_safely(section, filename):
+            captures.append('screenshots/' + filename)
+    publish_current('Publish honest pre-deadline submission snapshot', ['evidence/deadline-status.json', *captures])
+    (ROOT / '.deadline-published.secret').write_text(datetime.now(timezone.utc).isoformat(), encoding='utf-8')
 
 
 def main():
     config = watch_sync.load_env(watch_sync.ENV_PATH)
+    qualification = Qualification()
+    deadline = datetime.fromisoformat('2026-11-01T23:59:00+01:00')
     log(f"Monitoring Ethereum sync on {config['host']} every {INTERVAL}s; credentials loaded from btc/.env.")
     while True:
         client = None
@@ -106,11 +161,25 @@ def main():
             status = read_status(client)
             STATUS_FILE.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
             log(json.dumps(status, ensure_ascii=False))
-            if fully_synced(status):
-                capture_and_publish(status)
-                return
+            if qualification.observe(status):
+                status['qualification_samples'] = json.loads(json.dumps(qualification.samples))
+                if capture_and_publish(status):
+                    return
+                qualification = Qualification()
+            if (datetime.now(timezone.utc) >= deadline - timedelta(minutes=29)
+                    and not (ROOT / '.deadline-published.secret').exists()):
+                publish_deadline_snapshot(status)
         except Exception as exc:
+            qualification = Qualification()
             log(f"Check failed: {type(exc).__name__}: {exc}")
+            if (datetime.now(timezone.utc) >= deadline - timedelta(minutes=29)
+                    and not (ROOT / '.deadline-published.secret').exists() and STATUS_FILE.exists()):
+                try:
+                    saved = json.loads(STATUS_FILE.read_text(encoding='utf-8'))
+                    saved['current_check_error'] = f'{type(exc).__name__}: {exc}'
+                    publish_deadline_snapshot(saved)
+                except Exception as publish_error:
+                    log(f'Pre-deadline publication failed: {publish_error}; retry on next check.')
         finally:
             if client:
                 client.close()

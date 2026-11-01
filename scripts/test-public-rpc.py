@@ -46,6 +46,12 @@ def main():
         if isinstance(value, dict) and method == "eth_syncing":
             value = {key: value.get(key) for key in ("currentBlock", "highestBlock")}
         print("HTTPS", method, "=", value)
+    for method in ('admin_nodeInfo', 'debug_metrics', 'personal_listAccounts'):
+        request.data = json.dumps({'jsonrpc': '2.0', 'id': 2, 'method': method, 'params': []}).encode()
+        with urllib.request.urlopen(request, context=context, timeout=20) as response:
+            result = json.load(response)
+        assert result.get('error', {}).get('code') == -32601, result
+        print('HTTPS', method, '= disabled (expected)')
     print("WebSocket endpoint:", f"wss://{authority}/ws")
     with connect(f"wss://{authority}/ws", ssl=context,
                  additional_headers={"Authorization": authorization}, open_timeout=20, close_timeout=2) as connection:
@@ -56,6 +62,17 @@ def main():
             if method == "eth_chainId":
                 assert result["result"] == "0x1", result
             print("WSS", method, "=", result["result"])
+        connection.send(json.dumps({'jsonrpc': '2.0', 'id': 3, 'method': 'eth_subscribe', 'params': ['newHeads']}))
+        subscription = json.loads(connection.recv(timeout=20))
+        assert isinstance(subscription.get('result'), str), subscription
+        connection.send(json.dumps({'jsonrpc': '2.0', 'id': 4, 'method': 'eth_unsubscribe',
+                                    'params': [subscription['result']]}))
+        while True:
+            reply = json.loads(connection.recv(timeout=20))
+            if reply.get('id') == 4:
+                assert reply.get('result') is True, reply
+                break
+        print('WSS newHeads subscribe/unsubscribe = passed (notification delivery not tested)')
     print("Public HTTPS and WSS tests passed. This does not prove full synchronization.")
 
 

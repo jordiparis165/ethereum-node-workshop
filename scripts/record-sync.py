@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from sync_forecast import forecast
-from sync_activity import collect_activity, activity_state
+from sync_activity import collect_activity, activity_state, activity_rates
 
 ROOT = Path(__file__).resolve().parent
 
@@ -47,6 +47,9 @@ def record():
                 capture_output=True, text=True,
             ).stdout.strip()
             status["fast_disk_free_bytes"] = shutil.disk_usage(migration.parent).free
+        placement = ROOT / 'domain-placement.json'
+        if placement.exists():
+            status['domain_placement'] = json.loads(placement.read_text())
         status["service"] = subprocess.run(
             ["systemctl", "is-active", "erigon.service"], capture_output=True, text=True
         ).stdout.strip()
@@ -59,12 +62,19 @@ def record():
         )
         status["disk_free_bytes"] = shutil.disk_usage("/data").free
         status["io_pressure"] = Path("/proc/pressure/io").read_text().strip()
+        same_head = previous and status.get('block') == previous.get('block')
+        same_pid = previous and ((status.get('activity') or {}).get('process') or {}).get('pid') == (
+            (previous.get('activity') or {}).get('process') or {}).get('pid')
+        status['last_head_advance_at'] = (previous.get('last_head_advance_at', previous['observed_at'])
+                                         if same_head and same_pid else status['observed_at'])
         logs = subprocess.check_output(
             ["journalctl", "-q", "-u", "erigon.service", "--since", "5 minutes ago", "--no-pager"],
             text=True, stderr=subprocess.DEVNULL,
         ).splitlines()
         for name, pattern in (("commitment", "parallel committed"), ("execution", "parallel executed")):
             status[name] = next((line for line in reversed(logs) if pattern in line), None)
+        status['consensus_log'] = next((line for line in reversed(logs)
+                                        if 'Forward Sync' in line or 'Caplin P2P' in line), None)
         status["errors"] = [line for line in logs if any(
             pattern in line for pattern in ("[ERROR]", "[EROR]", "[CRIT]", "Wrong trie root", "halting process")
         )][-10:]
@@ -76,6 +86,7 @@ def record():
     except Exception as exc:
         status["check_error"] = f"{type(exc).__name__}: {exc}"
     status['activity_state'] = activity_state(status, previous)
+    status['resource_rates'] = activity_rates(status, previous)
     status['warnings'] = []
     for field in ('fast_disk_free_bytes', 'disk_free_bytes'):
         if field in status and status[field] < 15 * 1024**3:
@@ -86,12 +97,18 @@ def record():
     events = (status.get('activity') or {}).get('cgroup_memory_events') or {}
     if events.get('oom_kill', 0):
         status['warnings'].append('OOM kill recorded in the current service cgroup; inspect kernel logs')
+    if status.get('last_head_advance_at') and not status['fully_synced']:
+        unchanged = (datetime.fromisoformat(status['observed_at'])
+                     - datetime.fromisoformat(status['last_head_advance_at'])).total_seconds()
+        status['seconds_without_validated_head_advance'] = round(unchanged)
+        if unchanged >= 3 * 3600:
+            status['warnings'].append('No validated head advance for 3 hours; inspect I/O and commitment before restarting')
     deadline = os.environ.get("ETHEREUM_DEADLINE")
     if deadline:
         history = []
         log = ROOT / "observations.jsonl"
         if log.exists():
-            for line in log.read_text(encoding="utf-8").splitlines()[-60:]:
+            for line in log.read_text(encoding="utf-8").splitlines()[-360:]:
                 try:
                     history.append(json.loads(line))
                 except json.JSONDecodeError:

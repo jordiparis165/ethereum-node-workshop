@@ -1,5 +1,5 @@
+"""Build the French report from saved measurements and genuine terminal captures."""
 import json
-import re
 from datetime import datetime
 from html import escape
 from pathlib import Path
@@ -11,136 +11,199 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, KeepTogether
 
 ROOT = Path(__file__).resolve().parents[1]
-SHOTS = ROOT / "screenshots"
-OUT = ROOT / "RAPPORT-ETHEREUM.pdf"
-SYNC_MARKER = ROOT / ".sync-complete"
-STATUS_FILE = ROOT / "sync-status.json"
+OUT = ROOT / 'RAPPORT-ETHEREUM.pdf'
+
+
+def read_json(path):
+    try:
+        return json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}
 
 
 def footer(canvas, doc):
     canvas.saveState()
-    canvas.setStrokeColor(colors.HexColor("#d8dee8"))
-    canvas.line(18 * mm, 15 * mm, 192 * mm, 15 * mm)
-    canvas.setFont("ArialUnicode", 8)
-    canvas.setFillColor(colors.HexColor("#667085"))
-    canvas.drawString(18 * mm, 10 * mm, "Jordi PARIS | Nœud Ethereum")
-    canvas.drawRightString(192 * mm, 10 * mm, f"Page {doc.page}")
+    canvas.setFont('ArialUnicode', 8)
+    canvas.setFillColor(colors.HexColor('#667085'))
+    canvas.drawString(18 * mm, 10 * mm, 'Jordi PARIS | Nœud Ethereum')
+    canvas.drawRightString(192 * mm, 10 * mm, f'Page {doc.page}')
     canvas.restoreState()
 
 
 def add_screenshot(story, filename, caption, styles):
-    path = SHOTS / filename
+    path = ROOT / 'screenshots' / filename
     if not path.exists():
         return
-    image = Image(str(path))
-    scale = min((174 * mm) / image.imageWidth, (112 * mm) / image.imageHeight)
-    image.drawWidth = image.imageWidth * scale
-    image.drawHeight = image.imageHeight * scale
-    story.extend([image, Spacer(1, 2 * mm), Paragraph(caption, styles["Caption"]), Spacer(1, 5 * mm)])
-
-
-def sync_summary():
-    if SYNC_MARKER.exists():
-        checked_at = escape(SYNC_MARKER.read_text(encoding="utf-8").strip())
-        return ("Le dernier contrôle a confirmé `eth_syncing=false`, un bloc courant non nul "
-                "et une tête récente. Caplin est intégré à Erigon; son checkpoint de consensus "
-                f"a été chargé avant le suivi de la tête. Vérification faite le {checked_at}.")
-
-    if STATUS_FILE.exists():
-        try:
-            status = json.loads(STATUS_FILE.read_text(encoding="utf-8"))
-            syncing = status.get("eth_syncing")
-            progress = status.get("progress", [])
-            snapshot = next((line for line in reversed(progress) if "Syncing snapshots" in line), None)
-            execution = next((line for line in reversed(progress) if "[4/6 Execution] parallel executed" in line), None)
-            commitment = next((line for line in reversed(progress) if "[4/6 Execution] parallel committed" in line), None)
-            line = commitment or execution or snapshot or (progress[-1] if progress else "")
-            line = re.sub(r"^.*?\[Downloader\] ", "", line)
-            line = re.sub(r"^.*?\[4/6 Execution\] ", "Execution : ", line)
-            if isinstance(syncing, dict):
-                current = int(syncing.get("currentBlock", "0x0"), 16)
-                highest = int(syncing.get("highestBlock", "0x0"), 16)
-                rpc_progress = (f"Le RPC indique le bloc {current:,} sur sa cible locale {highest:,}. "
-                                "Cette cible peut être ancienne : elle ne donne pas à elle seule le retard sur mainnet.")
-            else:
-                rpc_progress = "Le RPC ne confirme pas une synchronisation terminée."
-                if status.get("rpc_error"):
-                    rpc_progress = "Le RPC est indisponible lors de ce relevé."
-                    if (status.get("storage_migration") or {}).get("phase") in (
-                        "copying", "stopping_cleanly", "copying_stopped_database", "starting_on_fast_storage"
-                    ):
-                        rpc_progress += " Le client est en pause pendant la préparation du stockage."
-            match = re.search(r"progress=([^ ]+)", commitment or "")
-            detail = (f" Le calcul de l'état indique {escape(match.group(1))} clés traitées pour le calcul courant. "
-                      "Ce compteur peut avancer sans changement du numéro de bloc; ce n'est pas le pourcentage global de synchronisation."
-                      if match else f" Dernier journal Erigon : {escape(line)}." if line else "")
-            age = status.get("head_age_seconds")
-            if status.get("rpc_error"):
-                detail = " Les derniers blocs validés avant la pause sont conservés dans les relevés et les captures précédents."
-            if age is not None:
-                detail += f" Le dernier bloc exposé a environ {age / 3600:.1f} heures de retard."
-            if status.get("observed_at"):
-                detail += f" Relevé UTC : {escape(status['observed_at'])}."
-            free = int(status.get("disk_free_bytes", 0))
-            free_text = f" Il restait environ {free / (1024**3):.0f} Gio libres sur `/data`." if free else ""
-            return ("Au dernier relevé, le nœud n’était pas encore synchronisé. " + rpc_progress +
-                    detail + free_text + " Caplin est le client de consensus intégré à Erigon.")
-        except (OSError, ValueError, TypeError, json.JSONDecodeError):
-            pass
-    return "La synchronisation est en cours. Je ne la considère terminée que lorsque les RPC et le bloc de tête la confirment."
+    shot = Image(str(path))
+    scale = min(174 * mm / shot.imageWidth, 105 * mm / shot.imageHeight)
+    shot.drawWidth, shot.drawHeight = shot.imageWidth * scale, shot.imageHeight * scale
+    story.append(KeepTogether([shot, Spacer(1, 2 * mm), Paragraph(caption, styles['Caption']), Spacer(1, 4 * mm)]))
 
 
 def main():
-    fonts = Path("C:/Windows/Fonts")
-    pdfmetrics.registerFont(TTFont("ArialUnicode", str(fonts / "arial.ttf")))
-    pdfmetrics.registerFont(TTFont("ArialUnicode-Bold", str(fonts / "arialbd.ttf")))
+    fonts = Path('C:/Windows/Fonts')
+    pdfmetrics.registerFont(TTFont('ArialUnicode', str(fonts / 'arial.ttf')))
+    pdfmetrics.registerFont(TTFont('ArialUnicode-Bold', str(fonts / 'arialbd.ttf')))
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="ReportTitle", parent=styles["Title"], fontName="ArialUnicode-Bold", fontSize=22, leading=27, textColor=colors.HexColor("#123047"), alignment=TA_LEFT, spaceAfter=7 * mm))
-    styles.add(ParagraphStyle(name="Section", parent=styles["Heading1"], fontName="ArialUnicode-Bold", fontSize=14, leading=18, textColor=colors.HexColor("#123047"), spaceBefore=4 * mm, spaceAfter=2 * mm))
-    styles.add(ParagraphStyle(name="FR", parent=styles["BodyText"], fontName="ArialUnicode", fontSize=9.5, leading=14, spaceAfter=2.5 * mm))
-    styles.add(ParagraphStyle(name="Caption", parent=styles["BodyText"], fontName="ArialUnicode", fontSize=8, leading=10, textColor=colors.HexColor("#475467")))
+    styles.add(ParagraphStyle(name='ReportTitle', fontName='ArialUnicode-Bold', fontSize=22,
+                             leading=27, alignment=TA_LEFT, spaceAfter=6 * mm))
+    styles.add(ParagraphStyle(name='Section', fontName='ArialUnicode-Bold', fontSize=13,
+                             leading=17, spaceBefore=4 * mm, spaceAfter=2 * mm, keepWithNext=True))
+    styles.add(ParagraphStyle(name='FR', fontName='ArialUnicode', fontSize=9.5, leading=14, spaceAfter=3 * mm))
+    styles.add(ParagraphStyle(name='Caption', fontName='ArialUnicode', fontSize=8,
+                             leading=10, textColor=colors.HexColor('#475467')))
+    status = read_json(ROOT / 'sync-status.json')
+    audit = read_json(ROOT / 'evidence/submission-audit.json')
+    monitor = read_json(ROOT / 'evidence/current-monitor.json')
+    reboot = read_json(ROOT / 'evidence/reboot-verification.json')
+    proof = read_json(ROOT / 'evidence/first-verified-sync.json')
+    story = [Paragraph('Déploiement d’un nœud Ethereum', styles['ReportTitle'])]
 
-    doc = SimpleDocTemplate(str(OUT), pagesize=A4, rightMargin=18*mm, leftMargin=18*mm, topMargin=17*mm, bottomMargin=21*mm, title="Déploiement d’un nœud Ethereum", author="Jordi PARIS")
-    story = [Paragraph("Déploiement d’un nœud Ethereum", styles["ReportTitle"])]
-    story.append(Paragraph("J’ai d’abord lancé Geth avec Lighthouse, compilés depuis leurs sources. Comme l’estimation de synchronisation dépassait le temps restant, j’ai suivi le conseil du professeur et compilé Erigon v3.8.1. La configuration active utilise Erigon avec Caplin, son client de consensus intégré.", styles["FR"]))
+    def paragraph(text):
+        story.append(Paragraph(text, styles['FR']))
 
-    story += [Paragraph("Préparation et compilation", styles["Section"]), Paragraph("Le VPS a 8 vCPU, 22 Gio de mémoire et un volume `/data` de 984 Go. Geth et Lighthouse avaient été compilés et testés au début. Erigon v3.8.1 a ensuite été compilé depuis le tag officiel avec Go 1.26.10 et `make erigon`. Le Go système (1.24.4) était trop ancien; son mécanisme de sélection automatique a planté, donc j’ai appelé directement le toolchain téléchargé dans le cache Go. Aucun binaire Erigon précompilé n’a été utilisé.", styles["FR"])]
-    add_screenshot(story, "01-compilation.png", "Versions des clients compilés affichées dans le terminal après connexion SSH au VPS.", styles)
+    def section(title):
+        story.append(Paragraph(title, styles['Section']))
 
-    story += [Paragraph("Configuration et services", styles["Section"]), Paragraph("Erigon est sur mainnet, en mode de pruning minimal, avec Caplin intégré. Le service `erigon.service` est activé par systemd. Les API HTTP et WebSocket écoutent sur 8545 et 8546 et n’exposent que `eth`, `net` et `web3`. Les métriques restent locales sur 6061. L’API Engine n’est pas ouverte au réseau. Les services Geth et Lighthouse sont arrêtés mais leurs bases sont conservées pour pouvoir revenir en arrière.", styles["FR"])]
-    add_screenshot(story, "02-services.png", "État des services, ressources de la VM, stockage et ports RPC en écoute.", styles)
+    paragraph('J’ai déployé Erigon v3.8.1 sur le VPS de l’école, avec Caplin pour le consensus. '
+              'J’avais commencé avec Geth et Lighthouse, puis changé de client après le conseil du professeur. '
+              'Les tests et les captures présentés ici viennent du VPS ou de requêtes envoyées depuis mon PC.')
+    section('État vérifié et limites du rendu')
+    observed = status.get('observed_at', audit.get('observed_at', 'non disponible'))
+    paragraph(f'Dernier relevé UTC : {escape(observed)}. Objectif de rendu : le 1er novembre 2026 à 23 h 59, heure de Paris.')
+    if status.get('block') and not status.get('rpc_error'):
+        height = int(status['block'], 16)
+        age = status.get('head_age_seconds')
+        paragraph(f'Le RPC local expose le bloc <b>{height:,}</b>. '
+                  + (f'Son horodatage a environ <b>{age / 3600:.2f} heures de retard</b>. ' if age is not None else '')
+                  + 'Ce retard n’est pas une durée de synchronisation restante.')
+    elif status.get('rpc_error'):
+        paragraph('Le RPC ne répond pas lors de ce relevé. Un champ de secours à zéro ne signifie pas une réinitialisation de la chaîne.')
+    reference = status.get('reference') or {}
+    if reference:
+        paragraph(f'La référence indépendante {escape(reference["provider"])} expose le bloc '
+                  f'{reference["latest_block"]:,}, soit {reference["remaining_blocks"]:,} blocs d’écart à ce relevé. '
+                  f'Comparaison du hash à notre hauteur : {"identique" if reference.get("local_block_hash_matches") else "non confirmée"}. '
+                  'La référence ne remplace pas notre nœud : elle sert seulement à contrôler son rattrapage.')
+    budget = audit.get('deadline_budget') or {}
+    if budget.get('maximum_seconds_per_1000_validated_blocks'):
+        paragraph(f'Pour tenir l’échéance, le budget calculé demande en moyenne 1 000 blocs validés en au plus '
+                  f'{budget["maximum_seconds_per_1000_validated_blocks"] / 60:.0f} minutes, nouveaux blocs du réseau compris. '
+                  'C’est un seuil à atteindre, pas une prévision de fin ni un débit déjà obtenu.')
+    criteria = audit.get('criteria', {})
+    synchronized = criteria.get('synchronization') == 'verified_in_saved_repeated_observations'
+    paragraph('<b>Synchronisation : ' + ('constatée dans les observations répétées sauvegardées.' if synchronized else
+              'pas encore confirmée.</b> Un téléchargement terminé ou eth_syncing=false avec une tête ancienne ne suffit pas.')
+              + ('</b>' if synchronized else ''))
+    if synchronized and 'screenshots/12-etat-actuel.png' not in proof.get('screenshots_refreshed', []):
+        paragraph('La confirmation est dans les relevés JSON. La capture de synchronisation reste historique si la session Windows '
+                  'ne permettait pas de refaire une vraie capture; aucune image de remplacement n’a été générée.')
+    paragraph('<b>Écart au sujet :</b> la base a été créée en mode <b>minimal</b>, pas avec le mode full d’Erigon. '
+              'Je ne présente pas ces modes comme équivalents. Changer de mode demande une resynchronisation selon Erigon; '
+              'je conserve les données existantes au lieu de supprimer la base à l’approche du rendu.')
+    paragraph('Le démarrage automatique est configuré. '
+              + ('Le changement de boot ID et le retour automatique des services ont été vérifiés après reboot.'
+                 if reboot.get('passed') else 'Le test réel de reboot et de récupération reste à valider.')
+              + (' Le lien GitHub était déjà présent dans la cellule F22 du tableur de rendu, vérifiée le 1er novembre sans modification.'
+                 if criteria.get('spreadsheet') == 'verified_already_present_in_F22' else ' L’inscription du lien dans le tableur reste à vérifier.'))
 
-    story += [Paragraph("Tests", styles["Section"]), Paragraph("Les appels RPC sont faits directement sur la VM. `eth_chainId` doit répondre `0x1` pour Ethereum mainnet; `web3_clientVersion` identifie le client, et `net_peerCount` permet de vérifier les connexions P2P. Une réponse RPC seule ne prouve pas que la synchronisation est terminée, donc j’ai aussi contrôlé `eth_syncing` et le bloc de tête.", styles["FR"])]
-    add_screenshot(story, "03-rpc.png", "Résultats réels des requêtes JSON-RPC exécutées sur le VPS.", styles)
-    story.append(Paragraph("Le 31 octobre, j'ai ajouté Nginx devant les RPC locaux, sans redémarrer Erigon. L'accès public utilise HTTPS sur `https://vps-ae86b6b8.vps.ovh.net:9443/rpc` et WSS sur `wss://vps-ae86b6b8.vps.ovh.net:9443/ws`. Il demande un identifiant et un mot de passe, transmis séparément du dépôt. Le certificat est auto-signé, exporté dans le dépôt et explicitement approuvé par le script de test. Le nom du serveur et TLS sont vérifiés. Le proxy limite les requêtes, les connexions et la taille des messages. Depuis le PC, les tests ont confirmé le refus sans authentification (401), puis des réponses `eth_chainId=0x1` et `web3_clientVersion` en HTTPS et en WSS.", styles["FR"]))
-    add_screenshot(story, "05-rpc-public.png", "Tests effectués depuis le PC vers les endpoints publics : TLS, authentification et namespaces eth et web3 en HTTPS et WebSocket.", styles)
+    section('Machine et compilation depuis les sources')
+    paragraph('La VM utilise Debian 13, 8 vCPU et environ 22 Gio de RAM. Le volume système fait 197 Gio et /data 984 Gio. '
+              'Le sujet mentionne 2 To; le professeur a indiqué qu’un VPS de 1 To devait suffire. '
+              'Le volume /data présente une latence mesurée élevée; le drapeau virtuel ROTA ne permet pas de conclure au type du disque physique.')
+    paragraph('J’ai compilé le tag officiel v3.8.1, commit cf6f14132ff042df33b8ce64b0114daeb0d15145, avec Go 1.26.10 '
+              'et make erigon. Le Go système 1.24.4 était trop ancien, donc j’ai utilisé directement le toolchain du cache Go. '
+              'Caplin est intégré : le même build compile le client d’exécution et les sources du consensus. '
+              'Les avertissements C/MDBX du build n’ont pas empêché la production du binaire. Les commandes de reprise sont dans le README.')
+    add_screenshot(story, '10-build-source.png', 'Commit source, fin du journal de compilation et version du binaire réellement installé.', styles)
 
-    story += [Paragraph("Synchronisation", styles["Section"]), Paragraph(sync_summary(), styles["FR"])]
-    add_screenshot(story, "04-synchronisation.png", "État retourné par Erigon et journaux de téléchargement/consensus lors du contrôle.", styles)
-    story += [Paragraph("Incident et reprise du 31 octobre", styles["Section"]), Paragraph("À 02 h 25, Erigon a signalé une erreur de racine d'état au bloc 26 301 999. Le calcul du commitment a été passé en mode séquentiel avec `--experimental.parallel-commitment=false`. Le délai d'arrêt systemd est passé à dix minutes pour laisser au client le temps de fermer sa base. À 07 h 09, le journal a indiqué le bloc 26 301 999 validé et l'exécution a ensuite dépassé ce bloc. Le contrôle de 09 h 59 montre un autre calcul en cours : 168 880 clés traitées sur 304 520. Les compteurs de blocs restent fixes pendant ce calcul. La pression d'attente disque était encore autour de 55 % à 09 h 57. Aucun redémarrage supplémentaire n'a été lancé pendant cette progression. Ces éléments confirment une reprise, mais pas la fin de la synchronisation.", styles["FR"])]
-    story.append(Paragraph("À 10 h 46, l'étape Execution a terminé un lot de 1 000 blocs en 3 h 36 min. À 10 h 52, le journal `head updated` a confirmé le bloc 26 302 999, également renvoyé par le RPC. Le lot suivant vise le bloc 26 303 999. Au relevé de 10 h 59, l'exécution avait atteint 26 303 030, sans nouvelle erreur récente. La tête validée gardait environ 30 heures de retard : ce résultat prouve que le traitement avance, mais pas que le nœud a rattrapé mainnet.", styles["FR"]))
-    story.append(Paragraph("Un timer systemd enregistre maintenant les mesures toutes les deux minutes sur le VPS, même quand mon PC est éteint. Il garde les compteurs RPC, les compteurs de calcul d'état, les erreurs et l'espace libre. Il marque la première synchronisation seulement si le service est actif, `eth_syncing=false` et la tête a moins de cinq minutes. Les services sont activés au démarrage. Le test de redémarrage complet de la VM reste à faire : je n'ai pas interrompu le calcul en cours pour le réaliser.", styles["FR"]))
+    section('Configuration et services')
+    paragraph('Le service tourne avec le compte non-root adm-mesifi. Les lots sont réglés à 2 Go, la limite de boucle à 10 000 blocs '
+              'et le calcul parallèle de commitment reste validé. Erigon et Caplin partagent le processus et le datadir. '
+              'Les unités Erigon, Nginx, le timer de suivi et le swap de secours sont activés au démarrage. '
+              'Restart=on-failure relance Erigon en cas d’arrêt anormal; cela ne remplace pas un test de reboot.')
+    paragraph('Les API HTTP 8545, WebSocket 8546, Engine 8551 et les métriques 6061 restent sur localhost. '
+              'Les namespaces activés sont eth, net et web3. L’API Beacon reste désactivée pour éviter sa consommation mémoire supplémentaire; '
+              'les logs et métriques Caplin donnent le suivi du consensus sans l’exposer sur Internet.')
+    add_screenshot(story, '13-services-enabled.png', 'Services actifs et activés au démarrage, ressources et sockets du VPS. Pas une preuve de reboot.', styles)
 
-    story += [Paragraph("Accélération avec les disques existants", styles["Section"]), Paragraph("Après le relevé de 11 h, j'ai testé 32 lectures aléatoires de 4 Ko hors du cache du système. La médiane était d'environ 0,22 ms sur le disque système contre 31,82 ms sur `/data`. Ce petit test donne une piste, mais ne mesure pas le gain de synchronisation. Le disque système avait environ 179 Gio libres. J'ai préparé le placement d'environ 132 Gio de fichiers d'état et de la base active sur ce volume, en laissant le gros fichier de commitment sur `/data`. Les index peuvent aussi être gardés en RAM avec `vmtouch`, dans une limite de 4 Gio.", styles["FR"]), Paragraph("La préparation a commencé à 11 h 23. Pour libérer le disque lent pendant la copie, Erigon a été mis en pause proprement vers 11 h 27; les RPC sont donc temporairement indisponibles pendant cette opération. Chaque fichier copié est vérifié par SHA-256 et les originaux sont conservés. La copie et le retour aux chemins d'origine en cas d'échec ont été testés dans des dossiers temporaires sur Linux. La capture suivante montre la préparation en cours, pas une synchronisation terminée ni un gain déjà démontré.", styles["FR"])]
-    add_screenshot(story, "06-optimisation-stockage.png", "État réel de la préparation du stockage sur la VM. Le pourcentage de copie ne représente pas la synchronisation Ethereum.", styles)
-    story.append(Paragraph("Vers 11 h 45, j'ai relevé le plafond de cache de la copie de 2 à 8 Gio et augmenté temporairement la prélecture de 128 Kio à 4 Mio puis 16 Mio. Les journaux ont montré environ 23 Mio/s avant réglage, 38 Mio/s après le premier réglage, puis 65 Mio/s sur environ trois minutes. Les fichiers copiés changent, donc ce n'est pas un benchmark contrôlé ni une estimation de fin du nœud. Un service remet les valeurs d'origine avant la relance d'Erigon. Les tests de retour arrière et de restauration des réglages ont tous passé sur Linux. Les mesures horodatées sont conservées dans `evidence/2026-10-31-copy-speed.json`.", styles["FR"]))
-    story.append(Paragraph("Vers 12 h 06, les index et l'état récent de Caplin ont également été copiés sur le volume rapide, avec les originaux conservés. J'ai aussi revérifié l'incident de 02 h 25 : la demande d'arrêt précède l'erreur de racine, donc je ne peux pas l'attribuer avec certitude au calcul parallèle. Le mode parallèle par défaut d'Erigon est rétabli pour la relance, avec toutes les validations actives et une configuration séquentielle de secours. Le suivi compare désormais le rattrapage réel des blocs validés à l'échéance de 23 h 59. Il sépare le temps de copie du temps de synchronisation et ne donne aucune estimation complète avant d'avoir des mesures après relance. Les douze tests ont passé sur Linux.", styles["FR"]))
+    section('RPC publics et sécurité')
+    paragraph('Nginx expose HTTPS sur https://vps-ae86b6b8.vps.ovh.net:9443/rpc et WSS sur le même hôte, chemin /ws. '
+              'L’accès demande une authentification HTTP Basic sur TLS. Le certificat est auto-signé : le script de test lui fait explicitement confiance '
+              'et vérifie le nom du serveur. La clé privée et les mots de passe ne sont pas dans Git. '
+              'Les limites du proxy sont 5 requêtes par seconde, 5 connexions par IP et 64 Ko par requête.')
+    paragraph('Depuis le PC, j’ai vérifié le refus sans identifiants (401), eth_chainId=0x1 et web3_clientVersion sur les deux transports. '
+              'Les méthodes admin_nodeInfo, debug_metrics et personal_listAccounts sont refusées. '
+              'L’abonnement et le désabonnement newHeads passent en WebSocket; ce test ne prouve pas la réception d’une notification. '
+              'Les réponses brutes sont conservées dans evidence/current-public-rpc.log.')
+    add_screenshot(story, '11-tests-publics.png', 'Tests réels depuis le PC vers les endpoints publics, sans afficher les identifiants.', styles)
 
-    story += [Paragraph("Stockage et bilan", styles["Section"]), Paragraph("Le sujet mentionne 2 To, puis le professeur a indiqué le 30 octobre qu’un VPS de 1 To devait suffire. Le volume `/data` fait 984 Go. Le mode minimal d’Erigon est choisi pour respecter cette contrainte; les données Geth et Lighthouse déjà présentes sont conservées, ce qui réduit l’espace disponible pendant le téléchargement. La doc Erigon recommande un SSD/NVMe, alors que le disque de cette VM apparaît rotatif. Le temps de synchronisation mesuré sur une machine NVMe ne peut donc pas être promis ici. Je m’en tiens aux sorties réelles des RPC et des journaux pour dire si le nœud est prêt.", styles["FR"])]
-    story.append(Paragraph(f"Rapport mis à jour le {datetime.now().strftime('%d/%m/%Y')} à partir des contrôles du VPS.", styles["Caption"]))
+    section('Synchronisation et mesure du rattrapage')
+    paragraph('Le timer enregistre les mesures toutes les deux minutes sur le VPS. Il relève la tête RPC, les logs d’exécution et de commitment, '
+              'les événements OOM, la RAM, le swap, les débits et latences disque. Ce suivi fonctionne même quand le PC est éteint. '
+              'Le PC ajoute la comparaison avec un endpoint mainnet indépendant, accessible depuis le PC mais refusé depuis ce VPS.')
+    paragraph('La confirmation finale demande trois observations sur au moins deux minutes : service actif, eth_syncing=false, tête de moins '
+              'de deux minutes, hash identique à la référence et écart de quatre blocs maximum. '
+              'Le suivi du VPS seul ne constitue pas cette confirmation indépendante.')
+    forecast = monitor.get('forecast') or {}
+    if forecast.get('scenarios'):
+        for name, label in [('optimistic', 'optimiste'), ('central', 'centrale'), ('pessimistic', 'pessimiste')]:
+            scenario = forecast['scenarios'][name]
+            paragraph(f'Estimation {label} UTC : {escape(str(scenario.get("finish_utc")))}. '
+                      'Conditionnelle au maintien du rythme; le travail non publié n’est pas crédité.')
+    else:
+        paragraph('Pas encore d’ETA robuste après la relance mémoire : le calcul attend au moins deux cycles complets de publication '
+                  'du même processus. Une fenêtre courte autour d’un saut de 1 000 blocs peut donner une fausse impression de vitesse. '
+                  'Je ne donne pas de probabilité chiffrée de finir avant l’échéance avec ces seules mesures.')
+    add_screenshot(story, '12-etat-actuel.png', 'État réel de synchronisation à l’heure affichée dans le terminal. Les captures ne sont pas des estimations.', styles)
 
-    story.append(Paragraph("Dernier point stockage : la bascule a terminé le 31 octobre à 12 h 15. Erigon et le cache d'index ont redémarré; les chemins de chaindata et des snapshots pointent vers le disque système. Il reste environ 41 Gio sur ce volume et 153 Gio sur /data. La prélecture temporaire est revenue à 128 Kio. Ce redémarrage ne prouve pas encore la fin de synchronisation : il faut attendre les nouvelles têtes validées et le contrôle RPC final.", styles["FR"]))
-    add_screenshot(story, "07-stockage-active.png", "Bascule terminée : service actif et chemins réels vers le volume rapide, relevés par SSH après la relance.", styles)
-    story.append(Paragraph("Vers 14 h 30, le compteur est resté au bloc 26 304 908. Le journal détaillé montre un calcul de commitment de 383 500 clés en 12 min 08 s, puis une reprise. Ce n'était donc pas la preuve d'un blocage complet. À 14 h 31, j'ai retiré le verrouillage en RAM des index désormais sur le disque rapide : environ 3 Gio redeviennent utilisables pour le cache du volume lent. Erigon n'a pas redémarré. La reprise avait commencé avant ce réglage, donc je ne lui attribue pas cette reprise et je ne peux pas encore chiffrer son gain. Le timer surveille maintenant l'activité disque et CPU, le dernier calcul d'état et les réserves mémoire/disque, sans redémarrage automatique. Les cinq nouveaux tests ont passé sur la VM.", styles["FR"]))
-    add_screenshot(story, "08-reprise-execution.png", "Contrôle réel après l'attente : l'exécution a repris, mais la tête RPC n'est pas encore à jour avec mainnet.", styles)
-    story.append(Paragraph("Le 1er novembre à midi, j'ai trouvé deux arrêts par manque de mémoire dans le journal du noyau : le 31 octobre à 22:32 et le 1er novembre à 07:17. Erigon avait été tué puis relancé automatiquement. J'ai ajouté une cible Go GOMEMLIMIT=14GiB et un swap de secours de 4 Gio sur le disque système, activé par systemd. Le swap ne remplace pas la RAM et n'est pas une accélération; il sert à absorber des pointes. La cible Go reste souple et ne couvre pas toute la mémoire du processus. Quatre tests de sécurité du script passent sur la VM. Après un arrêt propre, Erigon a redémarré à 12:16 et son journal confirme la nouvelle cible. La tête RPC avait atteint 26 316 998 avant l'intervention. Ces corrections ne prouvent pas une synchronisation complète ni une date de fin.", styles["FR"]))
-    add_screenshot(story, "09-securite-memoire.png", "Configuration mémoire appliquée, swap de secours et réserves du VPS après relance propre.", styles)
+    section('Incidents et améliorations réalisées')
+    paragraph('Les lectures aléatoires de contrôle du 31 octobre donnaient environ 0,22 ms sur le volume système contre 31,82 ms sur /data. '
+              'J’ai donc déplacé chaindata, les fichiers d’état qui tenaient sur le volume rapide et les bases récentes de Caplin. '
+              'Les copies ont été vérifiées par SHA-256 et les originaux gardés. Les gros fichiers de commitment restent en partie sur /data. '
+              'Une fusion de snapshots en arrière-plan partage encore ses accès disque avec l’exécution; je n’interromps pas ce travail sans gain démontré.')
+    add_screenshot(story, '07-stockage-active.png', 'Preuve historique de la bascule du 31 octobre. L’espace libre affiché est celui de cette capture.', styles)
+    paragraph('Un compteur de blocs est resté fixe pendant un calcul de 383 500 clés qui a duré environ 12 minutes. '
+              'Le journal détaillé a ensuite montré la reprise : ce compteur fixe n’était pas la preuve d’un deadlock. '
+              'L’erreur de racine du 31 octobre à 02:25 est apparue après une demande d’arrêt; je ne peux pas l’attribuer avec certitude au mode parallèle.')
+    paragraph('Le noyau a tué Erigon par manque de RAM le 31 octobre à 22:32 puis le 1er novembre à 07:17. '
+              'Le service avait redémarré automatiquement. J’ai installé GOMEMLIMIT=14GiB et un swap de secours de 4 Gio sur le volume rapide. '
+              'Cette cible Go est souple et ne couvre pas toute la mémoire du processus. Le swap n’est pas une accélération et peut ralentir s’il est très utilisé. '
+              'Une relance propre a appliqué la cible à 12:16. Le verrouillage de 3 Gio d’index en RAM a aussi été retiré après leur déplacement sur le disque rapide.')
+    add_screenshot(story, '09-securite-memoire.png', 'Configuration mémoire réellement appliquée et compteurs OOM du nouveau processus.', styles)
+    paragraph('Les 38 tests exécutés sur Linux le 1er novembre passent : copie vérifiée et retour arrière, restauration des réglages, '
+              'sécurité du swap, diagnostic d’activité, prévisions, qualification de synchronisation et garde-fous des opérations préparées. '
+              'Le contrôle ciblé de Git n’a trouvé ni les mots de passe SSH/RPC connus ni de clé privée PEM; ce n’est pas un audit exhaustif de tous les secrets possibles.')
+    paragraph('Le 1er novembre après 13 h, la fusion des fichiers de commitment a fait baisser la réserve du disque système. '
+              'J’ai réduit sa réserve ext4 de 8 à 4 Gio, conservant environ 4 Gio pour les services privilégiés, et déplacé '
+              'les caches de compilation vers /data avec vérification des copies. Les fichiers existants de domain restent '
+              'accessibles par liens; les nouveaux snapshots et temporaires sont désormais créés dans /data/erigon-domain-active. '
+              'Un arrêt propre puis une relance ont appliqué ce placement vers 13:20. Ce placement réduit le risque de saturation '
+              'du volume système, sans prouver un gain immédiat de vitesse. Les fichiers d’état utiles n’ont pas été supprimés.')
+    paragraph('Seul le déplacement du cache go-build, environ 3 Gio, a été terminé et vérifié. '
+              'La copie secondaire des modules a été interrompue quand la marge est redevenue suffisante : '
+              'le cache des modules original est intact et sa copie partielle sur /data n’est pas utilisée.')
+
+    section('Rendu et références')
+    paragraph('Dépôt : <link href="https://github.com/jordiparis165/ethereum-node-workshop">github.com/jordiparis165/ethereum-node-workshop</link>. '
+              'Le README décrit les dépendances, la compilation, les unités et les commandes de contrôle. '
+              'evidence/submission-audit.json distingue les points vérifiés et les manques. '
+              'Les identifiants RPC doivent être transmis séparément au correcteur. Aucune note sur 20 n’est déduite automatiquement de ces tests.')
+    paragraph('Documentation utilisée : '
+              '<link href="https://docs.erigon.tech/fundamentals/caplin">Caplin intégré</link>, '
+              '<link href="https://docs.erigon.tech/fundamentals/pruning-modes">modes de pruning</link>, '
+              '<link href="https://docs.erigon.tech/fundamentals/performance-tricks">performance</link>, '
+              '<link href="https://docs.erigon.tech/fundamentals/optimizing-storage">stockage</link> et '
+              '<link href="https://go.dev/doc/gc-guide">limite mémoire Go</link>.')
+    doc = SimpleDocTemplate(str(OUT), pagesize=A4, rightMargin=18*mm, leftMargin=18*mm,
+                            topMargin=17*mm, bottomMargin=21*mm,
+                            title='Déploiement d’un nœud Ethereum', author='Jordi PARIS')
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     print(OUT)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -2,6 +2,22 @@
 
 Les images dans `screenshots/` sont des captures réelles de l’écran Windows avec les sorties de commandes SSH exécutées sur le VPS. Aucun mot de passe ni secret JWT n’apparaît.
 
+## Contrôles du 1er novembre
+
+L'état courant est dans `evidence/submission-audit.json`, `current-status.json`, `current-monitor.json` et `current-public-rpc.log`. Ces fichiers sont horodatés : un ancien ratio de téléchargement ne remplace pas la vérification de synchronisation.
+
+- `10-build-source.png` : commit source, fin du journal de build et version du binaire, avec Caplin intégré.
+- `11-tests-publics.png` : tests HTTPS/WSS depuis le PC, authentification, TLS et API sensibles désactivées.
+- `12-etat-actuel.png` : comparaison entre le RPC du VPS et une référence mainnet indépendante, à l'heure indiquée.
+- `13-services-enabled.png` : services actifs et activés, sans prétendre qu'un reboot a déjà été testé.
+- `09-securite-memoire.png` : cible mémoire et swap de secours après relance propre.
+- `2026-11-01-linux-tests.log` : 38 tests passent sur Linux. Les tests des garde-fous de reboot ne sont pas une preuve de reboot réel.
+- `spreadsheet-submission.json` : le lien du dépôt était déjà présent dans la cellule F22 du tableur, vérifiée sans modification.
+
+Le mode reste `minimal`, pas le mode `full` demandé au sens strict d'Erigon. La synchronisation finale et le reboot réel ne doivent pas être considérés comme validés tant que leurs preuves spécifiques ne sont pas présentes.
+
+## Historique
+
 Captures initiales prises le 30 octobre 2026 :
 
 - `01-compilation.png` : versions d’Erigon v3.8.1, Geth et Lighthouse compilés depuis leurs sources.

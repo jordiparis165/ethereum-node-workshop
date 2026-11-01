@@ -37,9 +37,12 @@ def connect(config):
     return client
 
 
-def run_remote(client, command):
-    stdin, stdout, stderr = client.exec_command(command, timeout=30)
+def run_remote(client, command, timeout=30):
+    stdin, stdout, stderr = client.exec_command(command, timeout=timeout)
     stdin.close()
-    output = stdout.read().decode("utf-8", errors="replace")
-    error = stderr.read().decode("utf-8", errors="replace")
-    return stdout.channel.recv_exit_status(), output, error
+    try:
+        output = stdout.read().decode("utf-8", errors="replace")
+        error = stderr.read().decode("utf-8", errors="replace")
+        return stdout.channel.recv_exit_status(), output, error
+    finally:
+        stdout.channel.close()

@@ -1,0 +1,8 @@
+{
+  "existing_files_linked": 461,
+  "new_files_directory": "/data/erigon-domain-active",
+  "existing_fast_files_retained": "/var/lib/erigon-hot/domain",
+  "temporary_files_not_reused": 0,
+  "observed_at": "2026-11-01T12:20:23.523086+00:00",
+  "phase": "activated"
+}
