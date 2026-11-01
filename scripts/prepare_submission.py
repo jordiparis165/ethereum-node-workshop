@@ -34,7 +34,17 @@ def main():
     checks = {name: {'exit_code': None, 'output': '', 'stderr': 'Not checked'} for name in CHECKS}
     try:
         client = vps_ssh.connect(vps_ssh.load_env(vps_ssh.ENV_PATH))
-        status = read_status(client)
+        try:
+            status = read_status(client)
+        except Exception as exc:
+            saved = ROOT / 'sync-status.json'
+            if not saved.exists():
+                raise
+            status = json.loads(saved.read_text(encoding='utf-8'))
+            status['last_known_reference'] = status.pop('reference', status.get('last_known_reference'))
+            status.update(service='unknown', rpc_error=f'{type(exc).__name__}: {exc}',
+                          failed_check_at=datetime.now(timezone.utc).isoformat())
+            # Keep the prior observation time; the RPC failure is a separate, current fact.
         for name, command in CHECKS.items():
             try:
                 code, out, err = vps_ssh.run_remote(
@@ -42,6 +52,8 @@ def main():
                 checks[name] = {'exit_code': code, 'output': out, 'stderr': err}
             except Exception as exc:
                 checks[name] = {'exit_code': None, 'output': '', 'stderr': f'{type(exc).__name__}: {exc}'}
+        if status.get('rpc_error') and 'ActiveState=active' in checks['services']['output']:
+            status['service'] = 'active'
         sftp = client.open_sftp()
         sftp.get('/data/ethereum-monitor/latest.json', str(evidence / 'current-monitor.json'))
         sftp.close()
@@ -100,7 +112,10 @@ def main():
         'deadline': '2026-11-01T23:59:00+01:00',
         'repository': 'https://github.com/jordiparis165/ethereum-node-workshop',
         'criteria': {
-            'source_build_execution_and_embedded_consensus': 'documented' if checks['source_build']['exit_code'] == 0 else 'check_failed',
+            'source_build_execution_and_embedded_consensus': (
+                'documented' if checks['source_build']['exit_code'] == 0 else
+                'prior_build_evidence_current_check_timed_out' if checks['source_build']['exit_code'] == 124
+                and (ROOT / 'screenshots/10-build-source.png').exists() else 'check_failed'),
             'strict_erigon_full_mode': 'not_met_minimal_mode' if '--prune.mode=minimal' in (
                 checks['services']['output'] or (ROOT / 'configs/sync-performance.conf').read_text()) else 'manual_check_required',
             'synchronization': 'verified_in_saved_repeated_observations' if proof_valid else 'not_yet_verified',
@@ -125,7 +140,9 @@ def main():
     ref = status.get('reference') or {}
     live = (begin + '\nRelevé UTC : **' + status['observed_at'] + '**. Bloc RPC : **'
             + (str(int(status['block'], 16)) if not status.get('rpc_error') else 'indisponible') + '**. Écart avec la référence : **'
-            + str(ref.get('remaining_blocks', 'non mesuré')) + ' blocs**.\n\n'
+            + (str(ref['remaining_blocks']) + ' blocs' if 'remaining_blocks' in ref else 'non mesuré') + '**.\n\n'
+            + ('Dernier essai RPC UTC : **' + status['failed_check_at'] + '**, échec (`' + status['rpc_error'] + '`).\n\n'
+               if status.get('rpc_error') and status.get('failed_check_at') else '')
             + 'Synchronisation : `' + audit['criteria']['synchronization'] + '`. Reboot : `'
             + audit['criteria']['actual_reboot_and_automatic_recovery'] + '`.\n' + end)
     if begin in readme and end in readme:

@@ -74,6 +74,9 @@ def main():
     section('État vérifié et limites du rendu')
     observed = status.get('observed_at', audit.get('observed_at', 'non disponible'))
     paragraph(f'Dernier relevé UTC : {escape(observed)}. Objectif de rendu : le 1er novembre 2026 à 23 h 59, heure de Paris.')
+    if status.get('rpc_error') and status.get('failed_check_at'):
+        paragraph(f'Dernier essai RPC en échec à {escape(status["failed_check_at"])} UTC. '
+                  'Le relevé de bloc ci-dessus reste historique; il ne faut pas le lire comme une mesure actuelle.')
     if status.get('block') and not status.get('rpc_error'):
         height = int(status['block'], 16)
         age = status.get('head_age_seconds')
@@ -139,6 +142,10 @@ def main():
               'Les méthodes admin_nodeInfo, debug_metrics et personal_listAccounts sont refusées. '
               'L’abonnement et le désabonnement newHeads passent en WebSocket; ce test ne prouve pas la réception d’une notification. '
               'Les réponses brutes sont conservées dans evidence/current-public-rpc.log.')
+    if criteria.get('public_https_wss_eth_web3_auth_tls') != 'passed':
+        paragraph('Au dernier nouveau test, le RPC public a répondu 401 sans identifiants mais une requête '
+                  'authentifiée a expiré. Les tests précédemment réussis restent des preuves historiques, '
+                  'pas une garantie de disponibilité continue. Le journal courant conserve cet échec.')
     add_screenshot(story, '11-tests-publics.png', 'Tests réels depuis le PC vers les endpoints publics, sans afficher les identifiants.', styles)
 
     section('Synchronisation et mesure du rattrapage')
@@ -179,6 +186,8 @@ def main():
               'Cela montre une activité réelle, pas une synchronisation terminée.')
     paragraph('La RAM disponible oscillait autour de 500 à 700 Mio; les deux swaps, 8 Gio au total, '
               'étaient presque pleins. La pression I/O full moyenne sur 60 secondes était proche de 63 %. '
+              'Le moniteur du VPS à 22 h 43 a mesuré environ 3,8 Mio/s de swap entrant et 3,9 Mio/s '
+              'sortant; /data était occupé 95 % du temps avec environ 61 ms par requête. '
               'Erigon occupait environ 21 Gio de RAM résidente, les autres processus seulement quelques Mio. '
               'Aucun nouvel OOM n\'est apparu dans les journaux accessibles pendant ce contrôle. '
               'Je n\'ai pas vidé le swap ni redémarré le client, car les compteurs avançaient encore et une '

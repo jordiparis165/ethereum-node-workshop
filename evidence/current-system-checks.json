@@ -1,7 +1,7 @@
 {
   "source_build": {
-    "exit_code": 0,
-    "output": "cf6f14132ff042df33b8ce64b0114daeb0d15145\nerigon version 3.8.1-cf6f1413\ncc1: note: unrecognized command-line option ‘-Wno-unknown-warning-option’ may have been intended to silence earlier diagnostics\ncc1: note: unrecognized command-line option ‘-Wno-unknown-warning-option’ may have been intended to silence earlier diagnostics\nRun \"/data/ethereum-src/erigon-v3.8.1/build/bin/erigon/erigon\" to launch erigon.\nerigon version 3.8.1-cf6f1413\ncl/phase1/stages/chain_tip_rejections.go\ncl/phase1/stages/chain_tip_rejections_test.go\ncl/phase1/stages/chain_tip_sync.go\n",
+    "exit_code": 124,
+    "output": "cf6f14132ff042df33b8ce64b0114daeb0d15145\n",
     "stderr": ""
   },
   "services": {
@@ -16,7 +16,7 @@
   },
   "resources": {
     "exit_code": 0,
-    "output": "2026-11-01T22:39:32+01:00\n               total        used        free      shared  buff/cache   available\nMem:            22Gi        22Gi       374Mi       4.0Ki       647Mi       646Mi\nSwap:          8.0Gi       8.0Gi       2.0Mi\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/sda1       197G  169G   24G  88% /\n/dev/sdb        984G  841G  134G  87% /data\nNAME                       TYPE SIZE USED PRIO\n/var/lib/erigon_swap       file   4G   4G   10\n/var/lib/erigon_swap_extra file   4G   4G   10\nc822200c-4085-43e0-b32d-62c4d1fcc0a9\n",
+    "output": "2026-11-01T22:48:59+01:00\n               total        used        free      shared  buff/cache   available\nMem:            22Gi        22Gi       317Mi        12Ki       537Mi       533Mi\nSwap:          8.0Gi       8.0Gi       244Ki\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/sda1       197G  169G   24G  88% /\n/dev/sdb        984G  841G  134G  87% /data\nNAME                       TYPE SIZE USED PRIO\n/var/lib/erigon_swap       file   4G   4G   10\n/var/lib/erigon_swap_extra file   4G   4G   10\nc822200c-4085-43e0-b32d-62c4d1fcc0a9\n",
     "stderr": ""
   },
   "recent_chain_events": {

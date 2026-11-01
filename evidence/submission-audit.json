@@ -1,34 +1,21 @@
 {
-  "observed_at": "2026-11-01T21:40:23.410205+00:00",
+  "observed_at": "2026-11-01T21:49:27.654641+00:00",
   "deadline": "2026-11-01T23:59:00+01:00",
   "repository": "https://github.com/jordiparis165/ethereum-node-workshop",
   "criteria": {
-    "source_build_execution_and_embedded_consensus": "documented",
+    "source_build_execution_and_embedded_consensus": "prior_build_evidence_current_check_timed_out",
     "strict_erigon_full_mode": "not_met_minimal_mode",
     "synchronization": "not_yet_verified",
-    "public_https_wss_eth_web3_auth_tls": "passed",
+    "public_https_wss_eth_web3_auth_tls": "failed",
     "systemd_enabled": "configured",
     "actual_reboot_and_automatic_recovery": "not_yet_verified",
     "screenshots": "real_terminal_captures_in_screenshots",
     "spreadsheet": "verified_already_present_in_F22"
   },
-  "reference": {
-    "provider": "https://ethereum-rpc.publicnode.com",
-    "observed_at": "2026-11-01T21:39:09.491318+00:00",
-    "latest_block": 26322663,
-    "head_timestamp": 1793569139,
-    "head_age_seconds": 10,
-    "remaining_blocks": 3665,
-    "local_block_hash_matches": true
-  },
+  "reference": null,
   "deadline_budget": {
-    "seconds_before_deadline": 4717,
-    "kind": "required_rate_not_a_finish_prediction",
-    "minimum_net_catchup_blocks_per_second": 0.77704,
-    "network_sample_seconds": 7518,
-    "observed_network_blocks_per_second": 0.08286,
-    "required_average_validated_blocks_per_second": 0.85991,
-    "maximum_seconds_per_1000_validated_blocks": 1163
+    "seconds_before_deadline": 4172,
+    "kind": "required_rate_not_a_finish_prediction"
   },
   "limitations": [
     "Minimal is not Erigon full mode; changing pruning requires resynchronization.",
