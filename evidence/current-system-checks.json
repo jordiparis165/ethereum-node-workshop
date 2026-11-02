@@ -16,7 +16,7 @@
   },
   "resources": {
     "exit_code": 0,
-    "output": "2026-11-02T18:43:30+01:00\n               total        used        free      shared  buff/cache   available\nMem:            22Gi       9.6Gi       868Mi       168Ki        12Gi        13Gi\nSwap:          8.0Gi        78Mi       7.9Gi\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/sda1       197G  172G   22G  89% /\n/dev/sdb        984G  833G  141G  86% /data\nNAME                       TYPE SIZE  USED PRIO\n/var/lib/erigon_swap       file   4G 72.4M   10\n/var/lib/erigon_swap_extra file   4G  6.6M   10\nc822200c-4085-43e0-b32d-62c4d1fcc0a9\n",
+    "output": "2026-11-02T18:53:13+01:00\n               total        used        free      shared  buff/cache   available\nMem:            22Gi       9.2Gi       380Mi        64Ki        13Gi        13Gi\nSwap:          8.0Gi       359Mi       7.6Gi\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/sda1       197G  172G   22G  89% /\n/dev/sdb        984G  833G  141G  86% /data\nNAME                       TYPE SIZE   USED PRIO\n/var/lib/erigon_swap       file   4G   209M   10\n/var/lib/erigon_swap_extra file   4G 150.2M   10\nc822200c-4085-43e0-b32d-62c4d1fcc0a9\n",
     "stderr": ""
   },
   "recent_chain_events": {

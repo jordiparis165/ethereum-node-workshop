@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-11-02T17:43:29.218614+00:00",
+  "observed_at": "2026-11-02T17:52:49.157768+00:00",
   "eth_syncing": {
     "currentBlock": "0x191a44e",
     "highestBlock": "0x191a836",
@@ -45,34 +45,25 @@
   },
   "block": "0x191a44e",
   "head_hash": "0xacb6afe971d11bc7922bd3d7c70d81b8193420992df07b65ac44f8552a4f8465",
-  "head_age_seconds": 80298,
+  "head_age_seconds": 80858,
   "rpc_error": null,
   "service": "active",
   "progress": [
-    "Nov 02 18:28:32 vps-ae86b6b8 erigon[4018402]: [INFO] [11-02|18:28:32.006] [4/6 Execution] parallel executed        blk=26322292 blks=10 blk/s=0.25 txs=2.02k tx/s=50 gas/s=7.08M exec=2.88k repeat%=29.96 abort=145 invalid=512 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"58.39k,a=0,s=0,c=0\" wrt=24.90k rd/s=1.45k wrt/s=622 buf=412.8MB/2.0GB bdur=2s ucgas=8.93G alloc=8.9GB sys=14.6GB isForkValidation=false isApplyingBlocks=true",
-    "Nov 02 18:28:32 vps-ae86b6b8 erigon[4018402]: [INFO] [11-02|18:28:32.006] [4/6 Execution] parallel committed       blk=26321998 blks=0 blk/s=0 txs=0 tx/s=0 gas/s=7.08M bdur=0s progress=0/0 buf=206.4MB chit=0 cmiss=0 stepsInDB=0.90 step=9923.9 alloc=8.9GB sys=14.6GB isForkValidation=false isApplyingBlocks=true",
-    "Nov 02 18:31:10 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:31:10.648] [OtterSync] Starting Ottersync",
-    "Nov 02 18:41:29 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:41:29.346] [4/6 Execution] parallel executed        blk=26322001 blks=3 blk/s=0.15 txs=656 tx/s=32 gas/s=3.32M exec=811 repeat%=19.11 abort=47 invalid=113 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"14.77k,a=0,s=0,c=0\" wrt=5.43k rd/s=739 wrt/s=271 buf=1.1MB/512.0MB bdur=3s ucgas=66.48M alloc=7.9GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
-    "Nov 02 18:42:13 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:42:13.580] [4/6 Execution] parallel executed        blk=26322009 blks=8 blk/s=0.18 txs=2.24k tx/s=50 gas/s=5.99M exec=2.76k repeat%=18.86 abort=142 invalid=523 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"55.25k,a=0,s=0,c=0\" wrt=21.12k rd/s=1.24k wrt/s=477 buf=4.8MB/512.0MB bdur=2s ucgas=331.74M alloc=8.3GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
-    "Nov 02 18:42:49 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:42:49.366] [4/6 Execution] parallel executed        blk=26322015 blks=6 blk/s=0.17 txs=1.62k tx/s=45 gas/s=5.85M exec=1.91k repeat%=14.91 abort=91 invalid=338 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"39.88k,a=0,s=0,c=0\" wrt=15.84k rd/s=1.11k wrt/s=442 buf=7.8MB/512.0MB bdur=3s ucgas=541.44M alloc=7.1GB sys=13.3GB isForkValidation=false isApplyingBlocks=true"
+    "Nov 02 18:44:49 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:44:49.362] [4/6 Execution] parallel executed        blk=26322039 blks=10 blk/s=0.25 txs=2.37k tx/s=59 gas/s=6.94M exec=3.19k repeat%=25.70 abort=162 invalid=597 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"65.34k,a=0,s=0,c=0\" wrt=23.79k rd/s=1.63k wrt/s=594 buf=17.0MB/512.0MB bdur=2s ucgas=1.23G alloc=8.1GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:45:29 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:45:29.349] [4/6 Execution] parallel executed        blk=26322047 blks=8 blk/s=0.20 txs=1.84k tx/s=46 gas/s=6.36M exec=2.28k repeat%=19.20 abort=164 invalid=307 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"46.61k,a=0,s=0,c=0\" wrt=19.99k rd/s=1.16k wrt/s=499 buf=20.0MB/512.0MB bdur=3s ucgas=1.48G alloc=7.5GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:46:09 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:46:09.349] [4/6 Execution] parallel executed        blk=26322051 blks=4 blk/s=0.10 txs=1.25k tx/s=31 gas/s=3.04M exec=1.62k repeat%=23.22 abort=72 invalid=247 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"28.71k,a=0,s=0,c=0\" wrt=10.60k rd/s=717 wrt/s=265 buf=21.8MB/512.0MB bdur=5s ucgas=1.60G alloc=7.9GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:46:49 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:46:49.366] [4/6 Execution] parallel executed        blk=26322064 blks=13 blk/s=0.32 txs=3.07k tx/s=76 gas/s=9.34M exec=3.83k repeat%=19.90 abort=200 invalid=595 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"72.85k,a=0,s=0,c=0\" wrt=32.36k rd/s=1.82k wrt/s=808 buf=26.3MB/512.0MB bdur=1s ucgas=1.98G alloc=7.8GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:47:29 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:47:29.422] [4/6 Execution] parallel executed        blk=26322069 blks=5 blk/s=0.12 txs=1.12k tx/s=28 gas/s=4.92M exec=1.35k repeat%=16.62 abort=93 invalid=200 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"28.88k,a=0,s=0,c=0\" wrt=12.85k rd/s=721 wrt/s=320 buf=28.1MB/512.0MB bdur=3s ucgas=2.18G alloc=7.8GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:48:09 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:48:09.350] [4/6 Execution] parallel executed        blk=26322077 blks=8 blk/s=0.20 txs=1.94k tx/s=48 gas/s=5.80M exec=2.50k repeat%=22.49 abort=149 invalid=357 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"49.06k,a=0,s=0,c=0\" wrt=23.98k rd/s=1.22k wrt/s=600 buf=31.2MB/512.0MB bdur=3s ucgas=2.41G alloc=8.2GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:48:49 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:48:49.370] [4/6 Execution] parallel executed        blk=26322083 blks=6 blk/s=0.15 txs=1.62k tx/s=40 gas/s=4.75M exec=1.91k repeat%=14.98 abort=109 invalid=347 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"36.90k,a=0,s=0,c=0\" wrt=16.01k rd/s=922 wrt/s=400 buf=33.4MB/512.0MB bdur=3s ucgas=2.60G alloc=8.0GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:49:29 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:49:29.369] [4/6 Execution] parallel executed        blk=26322096 blks=13 blk/s=0.33 txs=2.76k tx/s=69 gas/s=9.17M exec=3.83k repeat%=27.99 abort=208 invalid=586 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"72.96k,a=0,s=0,c=0\" wrt=34.03k rd/s=1.82k wrt/s=850 buf=37.7MB/512.0MB bdur=2s ucgas=2.96G alloc=7.7GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:50:09 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:50:09.365] [4/6 Execution] parallel executed        blk=26322099 blks=3 blk/s=0.08 txs=1.08k tx/s=27 gas/s=2.61M exec=908 repeat%=0.00 abort=44 invalid=126 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"17.97k,a=0,s=0,c=0\" wrt=6.39k rd/s=449 wrt/s=159 buf=39.2MB/512.0MB bdur=4s ucgas=3.07G alloc=8.2GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:50:49 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:50:49.357] [4/6 Execution] parallel executed        blk=26322106 blks=7 blk/s=0.18 txs=1.53k tx/s=38 gas/s=4.96M exec=2.44k repeat%=37.05 abort=133 invalid=424 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"50.04k,a=0,s=0,c=0\" wrt=18.20k rd/s=1.25k wrt/s=455 buf=41.4MB/512.0MB bdur=4s ucgas=3.27G alloc=7.9GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:51:29 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:51:29.371] [4/6 Execution] parallel executed        blk=26322113 blks=7 blk/s=0.17 txs=1.79k tx/s=44 gas/s=5.71M exec=2.08k repeat%=13.76 abort=114 invalid=373 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"43.62k,a=0,s=0,c=0\" wrt=16.31k rd/s=1.09k wrt/s=407 buf=44.1MB/512.0MB bdur=2s ucgas=3.50G alloc=7.6GB sys=13.3GB isForkValidation=false isApplyingBlocks=true",
+    "Nov 02 18:52:09 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:52:09.359] [4/6 Execution] parallel executed        blk=26322118 blks=5 blk/s=0.13 txs=1.46k tx/s=36 gas/s=4.19M exec=1.46k repeat%=0.00 abort=80 invalid=190 tgas/s=0 tcpus=0.0 tdur=0s exec=0s(0.00%) read=\"0s(0.00%),a=0s,s=0s,c=0s\" rd=\"28.64k,a=0,s=0,c=0\" wrt=12.93k rd/s=716 wrt/s=323 buf=45.8MB/512.0MB bdur=3s ucgas=3.66G alloc=7.9GB sys=13.3GB isForkValidation=false isApplyingBlocks=true"
   ],
-  "caplin": [
-    "Nov 02 18:31:14 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:31:14.830] [Checkpoint Sync] Resuming from local finalized state slot=15567616",
-    "Nov 02 18:31:14 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:31:14.961] Starting caplin",
-    "Nov 02 18:31:19 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:31:19.755] [Caplin] Discovery address is unspecified, using detected outbound IP for ENR. Set --caplin.discovery.addr explicitly to override app=caplin detected=51.254.216.222",
-    "Nov 02 18:31:20 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:31:20.261] [Caplin] P2P networking started          app=caplin tcp_port=4001 quic_enabled=true quic_port=4002 enr_quic=51.254.216.222:4002 advertised_addrs=\"[/ip4/51.254.216.222/tcp/4001 /ip4/51.254.216.222/udp/4002/quic-v1 /ip4/127.0.0.1/tcp/4001 /ip4/127.0.0.1/udp/4002/quic-v1]\"",
-    "Nov 02 18:31:20 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:31:20.496] [Caplin] starting clstages loop          app=caplin",
-    "Nov 02 18:33:29 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:33:29.304] [Caplin] Forward Sync                    app=caplin stage=ForwardSync from=15567616 to=15568065",
-    "Nov 02 18:34:58 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:34:58.656] [Caplin] Forward Sync                    app=caplin stage=ForwardSync progress=15567647 distance-from-chain-tip=1h25m0s estimated-time-remaining=6m51s",
-    "Nov 02 18:35:14 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:35:14.688] [Caplin] Forward Sync                    app=caplin stage=ForwardSync progress=15567676 distance-from-chain-tip=1h19m36s estimated-time-remaining=6m51s",
-    "Nov 02 18:35:29 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:35:29.704] [Caplin] Forward Sync                    app=caplin stage=ForwardSync progress=15567705 distance-from-chain-tip=1h14m0s estimated-time-remaining=6m22s",
-    "Nov 02 18:36:04 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:36:04.431] [Caplin] Forward Sync                    app=caplin stage=ForwardSync progress=15567821 distance-from-chain-tip=51m24s estimated-time-remaining=1m6s",
-    "Nov 02 18:36:35 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:36:35.166] [Caplin] Forward Sync                    app=caplin stage=ForwardSync progress=15567937 distance-from-chain-tip=28m48s estimated-time-remaining=37s",
-    "Nov 02 18:37:01 vps-ae86b6b8 erigon[4024569]: [INFO] [11-02|18:37:01.430] [Caplin] Forward Sync                    app=caplin stage=ForwardSync progress=15568025 distance-from-chain-tip=11m36s estimated-time-remaining=19s"
-  ],
-  "errors": [
-    "Nov 02 18:29:20 vps-ae86b6b8 erigon[4018402]: [EROR] [11-02|18:29:20.344] [txpool] flush is local history          err=\"context canceled\""
-  ],
+  "caplin": [],
+  "errors": [],
   "storage_migration": {
     "observed_at": "2026-10-31T11:15:23.140141+00:00",
     "phase": "activated",
@@ -81,21 +72,21 @@
     "note": "Originals preserved; monitor RPC for verified progress and final sync"
   },
   "forecast": {
-    "observed_at": "2026-11-02T17:42:05.082799+00:00",
+    "observed_at": "2026-11-02T17:50:38.311855+00:00",
     "deadline": "2026-11-01T23:59:00+01:00",
     "seconds_until_deadline": 0,
     "eta_seconds": null,
     "on_track_estimate": null,
     "state": "waiting_for_validated_progress"
   },
-  "disk_free_bytes": 151357018112,
+  "disk_free_bytes": 151356948480,
   "reference": {
     "provider": "https://ethereum-rpc.publicnode.com",
-    "observed_at": "2026-11-02T17:43:34.313538+00:00",
-    "latest_block": 26328664,
-    "head_timestamp": 1793641403,
-    "head_age_seconds": 11,
-    "remaining_blocks": 6666,
+    "observed_at": "2026-11-02T17:52:54.328587+00:00",
+    "latest_block": 26328711,
+    "head_timestamp": 1793641967,
+    "head_age_seconds": 7,
+    "remaining_blocks": 6713,
     "local_block_hash_matches": true
   }
 }

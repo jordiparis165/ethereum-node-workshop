@@ -258,6 +258,13 @@ def main():
     paragraph('À 18 h 41, l\'étape Execution avait repris sur le lot 26 321 999 à 26 322 998. Le journal '
               'montrait buf=1.1MB/512.0MB. Un bloc exécuté n\'est pas encore un bloc validé : '
               'le débit net après ce réglage reste à mesurer.')
+    paragraph('A 18 h 52, le processus executait le bloc 26 322 118, mais le dernier bloc valide etait '
+              'toujours 26 321 998. La progression interne mesuree depuis 18 h 41 etait de 117 blocs en '
+              '10 min 40 s, soit environ 658 blocs/h. Mainnet progressait autour de 300 blocs/h sur le '
+              'dernier releve independant. Avec 6 703 blocs de retard et environ 29 h jusqu au 3 novembre '
+              'a minuit, il faudrait valider environ 530 blocs/h. Le debit d execution seul depasse ce seuil '
+              'sur cet echantillon court; le debit de validation reste a confirmer. La synchronisation avant '
+              'l echeance est donc possible, mais pas garantie.')
     add_screenshot(story, '18-essai-performance.png',
                    'Terminal du VPS : paramètre réellement actif, mémoire, exécution et OOM historiques.', styles)
 

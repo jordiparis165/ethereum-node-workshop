@@ -5,7 +5,7 @@ Pour ce TD, j’ai d’abord installé Geth avec Lighthouse. La synchronisation 
 ## État du rendu au 1er novembre
 
 <!-- LIVE_STATUS_BEGIN -->
-Relevé UTC : **2026-11-02T17:43:29.218614+00:00**. Bloc RPC : **26321998**. Écart avec la référence : **6666 blocs**.
+Relevé UTC : **2026-11-02T17:52:49.157768+00:00**. Bloc RPC : **26321998**. Écart avec la référence : **6713 blocs**.
 
 Synchronisation : `not_yet_verified`. Reboot : `not_yet_verified`.
 <!-- LIVE_STATUS_END -->
@@ -221,5 +221,7 @@ Le facteur limitant reste le stockage : vers 18 h 25, `vmstat` montrait souvent 
 La [documentation officielle d'Erigon](https://docs.erigon.tech/fundamentals/configuring-erigon) donne `512M` comme valeur normale de `--batchSize`, alors que notre service utilisait `2g`, conseillé pour accélérer la synchronisation sur une machine qui a de la marge. Le journal montrait un tampon de 1,1 Gio juste avant l'OOM. J'ai changé **uniquement** ce paramètre à `512m` dans `configs/sync-performance.conf`, en gardant une copie de l'ancienne unité sur le VPS. `systemd-analyze verify` a réussi. J'ai ensuite fait une relance propre à 18:29, qui a pris 35 secondes. Le nouveau PID utilise bien `--batchSize=512m`; Erigon, Caplin et le RPC ont repris. Cette modification devrait limiter la mémoire du tampon, mais elle peut aussi provoquer davantage de commits disque : **je n'affirme pas encore qu'elle accélère la validation**. Il faut mesurer au moins un lot complet et vérifier l'absence de nouvel OOM.
 
 À 18:41, le lot 26 321 999 à 26 322 998 avait repris l'étape Execution. Le journal montrait `buf=1.1MB/512.0MB`. Ces blocs exécutés ne sont pas encore des blocs validés : l'effet sur le rattrapage net reste à mesurer.
+
+À 18:52, Erigon exécutait le bloc 26 322 118, mais le dernier bloc validé restait 26 321 998. La progression interne a été de 117 blocs en 10 min 40 s, soit environ 658 blocs/h. Sur la mesure publique de 18:43 à 18:50, mainnet avançait d'environ 300 blocs/h. Le retard validé était de 6 703 blocs. Avec environ 29 h restantes jusqu'au 3 novembre à minuit, il faudrait valider en moyenne environ 530 blocs/h pour rattraper le réseau et atteindre la tête. Le rythme d'exécution observé est supérieur à ce seuil, mais l'exécution n'est pas la validation : la synchronisation complète avant l'échéance reste possible, pas démontrée ni garantie.
 
 Je n'ai ni supprimé la base, ni modifié le mode `minimal`, ni déplacé d'autres données. Le mode `full` strict d'Erigon demanderait une [resynchronisation](https://docs.erigon.tech/fundamentals/pruning-modes), donc je n'y touche pas sans autorisation. Le timer du VPS reste activé et continue ses mesures même si mon PC est éteint.

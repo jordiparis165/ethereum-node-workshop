@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-11-02T17:43:55.796492+00:00",
+  "observed_at": "2026-11-02T17:53:42.956891+00:00",
   "deadline": "2026-11-01T23:59:00+01:00",
   "repository": "https://github.com/jordiparis165/ethereum-node-workshop",
   "criteria": {
@@ -14,11 +14,11 @@
   },
   "reference": {
     "provider": "https://ethereum-rpc.publicnode.com",
-    "observed_at": "2026-11-02T17:43:34.313538+00:00",
-    "latest_block": 26328664,
-    "head_timestamp": 1793641403,
-    "head_age_seconds": 11,
-    "remaining_blocks": 6666,
+    "observed_at": "2026-11-02T17:52:54.328587+00:00",
+    "latest_block": 26328711,
+    "head_timestamp": 1793641967,
+    "head_age_seconds": 7,
+    "remaining_blocks": 6713,
     "local_block_hash_matches": true
   },
   "deadline_budget": {
