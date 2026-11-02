@@ -7,6 +7,13 @@ import vps_ssh as watch_sync
 
 
 COMMANDS = {
+    "performance": r"""date -Is
+echo '$ Erigon and independent VPS monitor'; systemctl show erigon.service -p ActiveState -p MainPID -p NRestarts; systemctl is-active ethereum-sync-monitor.timer
+echo '$ Batch size used by the running process'; pid=$(systemctl show erigon.service -p MainPID --value); tr '\0' ' ' < /proc/$pid/cmdline | grep -o -- '--batchSize=[^ ]*'
+echo '$ Memory and swap'; free -h; /usr/sbin/swapon --show
+echo '$ Most recent execution'; journalctl -u erigon.service -n 30 --no-pager -q | grep -E 'parallel executed|parallel committed|head updated' | tail -n 4
+echo '$ Recent kernel OOM kills'; sudo -n journalctl -k --since '2026-11-01 22:00:00' --no-pager -q | grep 'Out of memory: Killed process.*erigon' | tail -n 3
+echo 'An active process or RPC response is not proof of full synchronization.'""",
     "memory": r"""date -Is
 systemctl show erigon -p ActiveState -p MainPID -p Environment
 free -h; /usr/sbin/swapon --show

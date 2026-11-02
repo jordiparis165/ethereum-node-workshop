@@ -234,6 +234,33 @@ def main():
               'La copie secondaire des modules a été interrompue quand la marge est redevenue suffisante : '
               'le cache des modules original est intact et sa copie partielle sur /data n’est pas utilisée.')
 
+    section('Reprise et essai du 2 novembre')
+    paragraph('La VM fonctionnait encore le 2 novembre. Vers 18 h 25, le dernier bloc validé était 26 321 998 '
+              'contre 26 328 554 sur la référence mainnet, soit 6 556 blocs de retard. Depuis la veille à '
+              '21 h 42, notre tête avait gagné 3 000 blocs en environ 20 h 39, contre 6 177 blocs nouveaux '
+              'sur le réseau : environ 145 contre 299 blocs par heure. Le rattrapage net était donc négatif. '
+              'Pour combler ce retard en 12, 24 ou 48 heures, il faudrait valider environ 845, 572 ou 436 '
+              'blocs par heure en supposant le même rythme du réseau. Ce sont des seuils, pas des ETA.')
+    paragraph('Le noyau a tué Erigon par manque de mémoire à 23 h 20 le 1er novembre, puis à 09 h 46 '
+              'et 17 h 33 le 2 novembre. Son journal indique global_oom et zéro swap libre avant le dernier '
+              'arrêt. Erigon occupait environ 21 Gio de RAM anonyme et 7,9 Gio de swap, malgré GOMEMLIMIT=14GiB. '
+              'La cible Go est souple; le lot n\'avait pas encore été validé au moment de la perte du processus. '
+              'Le service systemd l\'a relancé automatiquement trois fois.')
+    paragraph('Vers 18 h 25, la pression I/O full était supérieure à 86 % et les lectures du volume /data '
+              'prenaient en moyenne environ 42 ms. Le CPU était souvent inactif en attente du disque. '
+              'Le volume système plus rapide n\'avait que 22 Gio libres, insuffisants pour tous les snapshots. '
+              'La prélecture de /data était revenue à 128 Kio. J\'ai donc choisi un seul essai réversible : '
+              'réduire --batchSize de 2g à 512m, valeur normale documentée par Erigon. Le fichier systemd '
+              'précédent est sauvegardé sur le VPS et systemd-analyze verify a réussi. Une relance propre '
+              'de 35 secondes à 18 h 29 a activé le nouveau paramètre; Erigon, Caplin et le RPC ont repris. '
+              'Le gain reste à démontrer sur un lot complet, et plus de petits commits pourraient ralentir '
+              'le disque. Aucune base n\'a été supprimée ni resynchronisée.')
+    paragraph('À 18 h 41, l\'étape Execution avait repris sur le lot 26 321 999 à 26 322 998. Le journal '
+              'montrait buf=1.1MB/512.0MB. Un bloc exécuté n\'est pas encore un bloc validé : '
+              'le débit net après ce réglage reste à mesurer.')
+    add_screenshot(story, '18-essai-performance.png',
+                   'Terminal du VPS : paramètre réellement actif, mémoire, exécution et OOM historiques.', styles)
+
     section('Rendu et références')
     paragraph('Dépôt : <link href="https://github.com/jordiparis165/ethereum-node-workshop">github.com/jordiparis165/ethereum-node-workshop</link>. '
               'Le README décrit les dépendances, la compilation, les unités et les commandes de contrôle. '

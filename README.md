@@ -5,7 +5,7 @@ Pour ce TD, j’ai d’abord installé Geth avec Lighthouse. La synchronisation 
 ## État du rendu au 1er novembre
 
 <!-- LIVE_STATUS_BEGIN -->
-Relevé UTC : **2026-11-02T17:21:06.271597+00:00**. Bloc RPC : **26321998**. Écart avec la référence : **6554 blocs**.
+Relevé UTC : **2026-11-02T17:43:29.218614+00:00**. Bloc RPC : **26321998**. Écart avec la référence : **6666 blocs**.
 
 Synchronisation : `not_yet_verified`. Reboot : `not_yet_verified`.
 <!-- LIVE_STATUS_END -->
@@ -209,3 +209,17 @@ Le cache de compilation `~/.cache/go-build`, environ 3 Gio, a été copié vers 
 `scripts/route-domain-writes.py` a ensuite appliqué un placement distinct pour les nouvelles écritures : `/data/erigon/snapshots/domain` pointe maintenant vers `/data/erigon-domain-active`, répertoire sur le grand volume. Il contient des liens vers les fichiers existants, dont ceux restés sur le disque rapide. Les futurs snapshots et fichiers temporaires sont créés sur `/data`, pour ne plus faire grossir les gros temporaires de fusion sur le volume système. Les originaux restent présents. La bascule a terminé vers 13:20 après un arrêt propre, sans resynchronisation complète.
 
 Le volume système est revenu à environ 29 Gio disponibles, en combinant la libération des temporaires par Erigon, le réglage de réserve et le déplacement vérifié du cache. Je n'attribue pas toute cette libération à un seul réglage, et ce placement ne prouve pas une accélération. Le but est d'éviter une saturation du disque système. Les 38 tests passent sur Linux; le module de placement est testé dans un répertoire temporaire, sans modifier la vraie base pendant les tests.
+
+## Nouveau contrôle le 2 novembre
+
+La VM était encore accessible vers 18 h 25. Le RPC exposait 26 321 998 blocs contre 26 328 554 sur une référence mainnet indépendante, soit 6 556 blocs de retard. Entre le contrôle du 1er novembre à 21 h 42 et celui-ci, notre tête a gagné 3 000 blocs en environ 20 h 39 (environ 145 blocs/h), tandis que le réseau en gagnait 6 177 (environ 299 blocs/h). Le retard augmentait donc d'environ 154 blocs/h. Avec ce débit *net négatif*, il n'y a pas d'heure de fin crédible. Pour effacer 6 556 blocs de retard en 12, 24 ou 48 h, il faudrait valider environ 845, 572 ou 436 blocs/h respectivement, en supposant que le réseau reste vers 299 blocs/h. Ce sont des seuils, pas des prévisions.
+
+Le noyau a tué Erigon par manque de mémoire le 1er novembre à 23:20, puis le 2 novembre à 09:46 et 17:33. Le journal du noyau indique `global_oom` et `Free swap = 0kB` : ce n'était pas une limite `MemoryMax` de systemd, qui vaut `infinity`. Juste avant le dernier arrêt, Erigon occupait environ 21 Gio de RAM anonyme et 7,9 Gio de swap, avec `alloc=28.2GB` dans le journal. `GOMEMLIMIT=14GiB` est une limite souple du runtime Go, pas une garantie contre ces allocations. Le processus avait exécuté 912 blocs sur le lot suivant mais n'en avait pas encore publié la validation. Les redémarrages automatiques ont donc perdu du temps de calcul.
+
+Le facteur limitant reste le stockage : vers 18 h 25, `vmstat` montrait souvent 78 à 87 % d'attente I/O, tandis que le CPU était peu utilisé. Sur cinq secondes, `/dev/sdb` recevait environ 250 lectures/s à environ 42 ms par lecture. La pression I/O `full` sur une minute dépassait 86 %. Le volume système rapide n'avait que 22 Gio disponibles; les gros fichiers de domain et de snapshots ne peuvent pas tous y tenir. La prélecture de `/data` est déjà à 128 Kio, pas au réglage de 16 Mio utilisé pendant l'ancienne copie.
+
+La [documentation officielle d'Erigon](https://docs.erigon.tech/fundamentals/configuring-erigon) donne `512M` comme valeur normale de `--batchSize`, alors que notre service utilisait `2g`, conseillé pour accélérer la synchronisation sur une machine qui a de la marge. Le journal montrait un tampon de 1,1 Gio juste avant l'OOM. J'ai changé **uniquement** ce paramètre à `512m` dans `configs/sync-performance.conf`, en gardant une copie de l'ancienne unité sur le VPS. `systemd-analyze verify` a réussi. J'ai ensuite fait une relance propre à 18:29, qui a pris 35 secondes. Le nouveau PID utilise bien `--batchSize=512m`; Erigon, Caplin et le RPC ont repris. Cette modification devrait limiter la mémoire du tampon, mais elle peut aussi provoquer davantage de commits disque : **je n'affirme pas encore qu'elle accélère la validation**. Il faut mesurer au moins un lot complet et vérifier l'absence de nouvel OOM.
+
+À 18:41, le lot 26 321 999 à 26 322 998 avait repris l'étape Execution. Le journal montrait `buf=1.1MB/512.0MB`. Ces blocs exécutés ne sont pas encore des blocs validés : l'effet sur le rattrapage net reste à mesurer.
+
+Je n'ai ni supprimé la base, ni modifié le mode `minimal`, ni déplacé d'autres données. Le mode `full` strict d'Erigon demanderait une [resynchronisation](https://docs.erigon.tech/fundamentals/pruning-modes), donc je n'y touche pas sans autorisation. Le timer du VPS reste activé et continue ses mesures même si mon PC est éteint.
