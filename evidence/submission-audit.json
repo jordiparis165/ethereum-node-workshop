@@ -1,20 +1,28 @@
 {
-  "observed_at": "2026-11-01T21:49:27.654641+00:00",
+  "observed_at": "2026-11-02T17:22:00.788301+00:00",
   "deadline": "2026-11-01T23:59:00+01:00",
   "repository": "https://github.com/jordiparis165/ethereum-node-workshop",
   "criteria": {
-    "source_build_execution_and_embedded_consensus": "prior_build_evidence_current_check_timed_out",
+    "source_build_execution_and_embedded_consensus": "documented",
     "strict_erigon_full_mode": "not_met_minimal_mode",
     "synchronization": "not_yet_verified",
-    "public_https_wss_eth_web3_auth_tls": "failed",
+    "public_https_wss_eth_web3_auth_tls": "passed",
     "systemd_enabled": "configured",
     "actual_reboot_and_automatic_recovery": "not_yet_verified",
     "screenshots": "real_terminal_captures_in_screenshots",
     "spreadsheet": "verified_already_present_in_F22"
   },
-  "reference": null,
+  "reference": {
+    "provider": "https://ethereum-rpc.publicnode.com",
+    "observed_at": "2026-11-02T17:21:11.723923+00:00",
+    "latest_block": 26328552,
+    "head_timestamp": 1793640059,
+    "head_age_seconds": 12,
+    "remaining_blocks": 6554,
+    "local_block_hash_matches": true
+  },
   "deadline_budget": {
-    "seconds_before_deadline": 4172,
+    "seconds_before_deadline": 0,
     "kind": "required_rate_not_a_finish_prediction"
   },
   "limitations": [

@@ -5,9 +5,7 @@ Pour ce TD, j’ai d’abord installé Geth avec Lighthouse. La synchronisation 
 ## État du rendu au 1er novembre
 
 <!-- LIVE_STATUS_BEGIN -->
-Relevé UTC : **2026-11-01T21:42:20.302620+00:00**. Bloc RPC : **indisponible**. Écart avec la référence : **non mesuré**.
-
-Dernier essai RPC UTC : **2026-11-01T21:48:17.178974+00:00**, échec (`TimeoutError`). Le dernier bloc connu reste une observation historique, pas une mesure actuelle.
+Relevé UTC : **2026-11-02T17:21:06.271597+00:00**. Bloc RPC : **26321998**. Écart avec la référence : **6554 blocs**.
 
 Synchronisation : `not_yet_verified`. Reboot : `not_yet_verified`.
 <!-- LIVE_STATUS_END -->
