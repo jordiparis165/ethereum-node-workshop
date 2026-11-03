@@ -60,6 +60,7 @@ def main():
     monitor = read_json(ROOT / 'evidence/current-monitor.json')
     reboot = read_json(ROOT / 'evidence/reboot-verification.json')
     proof = read_json(ROOT / 'evidence/first-verified-sync.json')
+    final_check = read_json(ROOT / 'evidence/2026-11-03-final-access-check.json')
     story = [Paragraph('Déploiement d’un nœud Ethereum', styles['ReportTitle'])]
 
     def paragraph(text):
@@ -267,6 +268,41 @@ def main():
               'l echeance est donc possible, mais pas garantie.')
     add_screenshot(story, '18-essai-performance.png',
                    'Terminal du VPS : paramètre réellement actif, mémoire, exécution et OOM historiques.', styles)
+
+    if final_check:
+        section('Bilan final du suivi du 3 novembre')
+        last = final_check['last_successful_remote_measure']
+        comparison = final_check['comparison']
+        disk = final_check['disk_measurement']
+        deadline = final_check['deadline_math']
+        paragraph(f"Le dernier relevé distant réussi date du {escape(last['at_paris'])}. Erigon était actif; le RPC local publiait "
+                  f"le bloc {last['local_rpc_block']:,}, contre {last['public_reference_block']:,} sur la référence indépendante, "
+                  f"soit {last['gap_blocks']:,} blocs d'écart. Le dernier essai SSH, le {escape(final_check['ssh_check_at_paris'])}, "
+                  f"a expiré alors que le DNS résolvait le VPS. Cela montre que l'accès SSH était indisponible depuis le PC, "
+                  f"pas que la VM était nécessairement arrêtée.")
+        paragraph(f"La comparaison entre {escape(comparison['start_paris'])} et {escape(comparison['end_paris'])} donne "
+                  f"0 nouveau bloc publié localement et {comparison['public_delta']:,} blocs produits sur le réseau en "
+                  f"{comparison['elapsed_seconds'] / 60:.1f} minutes. Le retard s'est donc accru de {comparison['gap_delta']:,} blocs, "
+                  f"soit environ {comparison['network_rate_blocks_per_hour']:.0f} blocs par heure sur cette fenêtre. "
+                  f"Au même moment, les logs d'exécution ont avancé de {final_check['execution_sample']['blocks']:,} blocs en "
+                  f"{final_check['execution_sample']['elapsed_seconds']} secondes ({final_check['execution_sample']['rate_blocks_per_second']:.2f} bloc/s). "
+                  f"Ces blocs internes n'étaient pas encore reflétés par eth_blockNumber : ils ne peuvent donc pas être comptés comme validés.")
+        paragraph(f"Pour combler {last['gap_blocks']:,} blocs avant le 3 novembre à 23 h 59, à partir du dernier relevé et en supposant "
+                  f"que le réseau continue à produire environ {comparison['network_rate_blocks_per_hour']:.0f} blocs/h, il aurait fallu publier "
+                  f"en moyenne {deadline['required_validated_blocks_per_hour']:.0f} blocs/h. La tête RPC locale n'en a publié aucun par heure "
+                  f"sur la fenêtre observée : son débit validé était donc inférieur au besoin. Le débit d'exécution interne, environ "
+                  f"{deadline['execution_rate_blocks_per_hour']:.0f} blocs/h sur un échantillon de 200 secondes, aurait théoriquement suffi "
+                  f"s'il avait été maintenu et publié; ce n'était pas encore le cas. On peut conclure que le VPS n'a pas démontré le débit "
+                  f"validé requis dans le délai, mais pas qu'il lui serait impossible de synchroniser avec plus de temps ou un meilleur stockage.")
+        paragraph(f"Pendant un échantillon de {disk['elapsed_seconds']} secondes, /data lisait environ "
+                  f"{disk['read_mib_per_second']:.1f} Mio/s et était occupé environ {disk['device_busy_percent']:.0f} % du temps; "
+                  f"la pression I/O full sur 60 secondes était de {disk['io_psi_full_avg60_percent']:.1f} %. "
+                  f"Avec un débit publié nul sur l'intervalle comparatif et un retard qui augmentait, les mesures ne permettaient "
+                  f"pas de soutenir une estimation de fin avant l'échéance. Elles indiquent une limite de débit de stockage sur "
+                  f"cette VM et cette période, pas une impossibilité définitive de synchroniser avec du matériel ou du temps supplémentaires.")
+        paragraph('J’ai réalisé la compilation depuis les sources, le déploiement des services, la configuration RPC sécurisée et les tests documentés. '
+                  'La synchronisation complète n’a pas été confirmée; la configuration utilise le mode minimal et le reboot réel reste non vérifié. '
+                  'Ces écarts empêchent de présenter le rendu comme entièrement conforme au sujet.')
 
     section('Rendu et références')
     paragraph('Dépôt : <link href="https://github.com/jordiparis165/ethereum-node-workshop">github.com/jordiparis165/ethereum-node-workshop</link>. '

@@ -1,0 +1,70 @@
+{
+  "ssh_check_at_paris": "2026-11-03 18:31",
+  "dns_resolved": true,
+  "resolved_ip": "51.254.216.222",
+  "ssh_port": 22,
+  "ssh_tcp_status": "timeout",
+  "conclusion": "SSH is unreachable from the workstation; this does not establish that the VM is powered off.",
+  "last_successful_remote_measure": {
+    "at_paris": "2026-11-03 01:06:50",
+    "erigon_service": "active",
+    "main_pid": 4052977,
+    "restart_count": 0,
+    "local_rpc_block": 26322998,
+    "public_reference_block": 26330574,
+    "gap_blocks": 7576,
+    "eth_syncing_highest_block": 26323998,
+    "latest_execution_log_block": 26323768
+  },
+  "comparison": {
+    "start_paris": "2026-11-02 23:51",
+    "end_paris": "2026-11-03 01:06:50",
+    "elapsed_seconds": 4550,
+    "start_local_rpc_block": 26322998,
+    "end_local_rpc_block": 26322998,
+    "start_public_block": 26330199,
+    "end_public_block": 26330574,
+    "public_delta": 375,
+    "gap_delta": 375,
+    "network_rate_blocks_per_hour": 296.7
+  },
+  "execution_sample": {
+    "start_paris": "2026-11-03 01:03:27",
+    "start_block": 26323712,
+    "end_paris": "2026-11-03 01:06:47",
+    "end_block": 26323768,
+    "elapsed_seconds": 200,
+    "blocks": 56,
+    "rate_blocks_per_second": 0.28,
+    "rate_blocks_per_hour": 1008,
+    "note": "Execution log progress was not yet reflected in eth_blockNumber."
+  },
+  "deadline_math": {
+    "deadline_paris": "2026-11-03 23:59",
+    "seconds_remaining_at_last_measure": 82330,
+    "gap_blocks_at_last_measure": 7576,
+    "network_rate_blocks_per_hour": 296.7,
+    "required_validated_blocks_per_hour": 628,
+    "observed_published_local_blocks_per_hour_over_comparison": 0,
+    "execution_rate_blocks_per_hour": 1008,
+    "interpretation": "Observed published throughput was below the deadline requirement. The short internal execution sample was not yet committed and does not establish that this throughput was sustainable."
+  },
+  "disk_measurement": {
+    "device": "/dev/sdb mounted at /data",
+    "elapsed_seconds": 5,
+    "read_sectors_delta": 55512,
+    "sector_bytes": 512,
+    "read_mib_per_second": 5.42,
+    "device_busy_percent": 100,
+    "io_psi_full_avg60_percent": 66.11,
+    "other_node_services": {
+      "bitcoind": "failed",
+      "electrs": "inactive"
+    }
+  },
+  "limits": [
+    "No complete synchronization was verified.",
+    "The last known RPC head is historical; SSH became unreachable later.",
+    "Observed storage pressure supports a throughput bottleneck for the measured interval, not a claim that the VM can never synchronize."
+  ]
+}

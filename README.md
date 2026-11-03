@@ -2,17 +2,27 @@
 
 Pour ce TD, j’ai d’abord installé Geth avec Lighthouse. La synchronisation avançait, mais les estimations de Geth dépassaient le délai du rendu. Après le conseil du prof, j’ai compilé Erigon depuis ses sources et je l’utilise maintenant avec Caplin, son client de consensus intégré. Les anciennes bases Geth et Lighthouse sont gardées sur le VPS, mais leurs services sont arrêtés.
 
-## État du rendu au 1er novembre
+## État connu de la VM au 3 novembre
 
 <!-- LIVE_STATUS_BEGIN -->
-Relevé UTC : **2026-11-02T17:52:49.157768+00:00**. Bloc RPC : **26321998**. Écart avec la référence : **6713 blocs**.
+Dernier relevé RPC réussi : **2026-11-03 01:06:50 (Paris)**. Bloc local validé : **26 322 998** ; référence publique : **26 330 574** ; écart : **7 576 blocs**.
 
-Synchronisation : `not_yet_verified`. Reboot : `not_yet_verified`.
+Dernier essai SSH : **2026-11-03 18:31 (Paris), délai dépassé**. Le DNS résout toujours le VPS, mais le port SSH ne répond pas. Cela ne prouve pas que la VM est éteinte. Synchronisation complète : non confirmée.
 <!-- LIVE_STATUS_END -->
 
 Le dépôt est consultable ici : **https://github.com/jordiparis165/ethereum-node-workshop**. Le rapport est uniquement en PDF : [RAPPORT-ETHEREUM.pdf](RAPPORT-ETHEREUM.pdf).
 
 L'état vérifiable le plus récent est dans [evidence/submission-audit.json](evidence/submission-audit.json), avec les réponses RPC et les contrôles système associés. Ne pas déduire une synchronisation terminée des captures historiques.
+
+## Bilan du suivi du 3 novembre
+
+À 01 h 06, Erigon était actif sans redémarrage récent. `eth_blockNumber` renvoyait 26 322 998, tandis que le RPC public renvoyait 26 330 574, soit 7 576 blocs d'écart. Le relevé précédent, vers 23 h 51, donnait le même bloc local et 26 330 199 côté public : en environ 75 min 50 s, le réseau a avancé de 375 blocs et la tête locale publiée de zéro. Sur cet intervalle, le retard validé s'est donc creusé de 375 blocs, soit environ 297 blocs par heure.
+
+Les journaux d'exécution montrent cependant du travail non encore publié par le RPC : 56 blocs traités en 200 secondes (environ 0,28 bloc/s) sur un échantillon court. Cette vitesse interne ne doit pas être présentée comme un débit de blocs validés. La différence est importante : les blocs en cours d'exécution n'apparaissent pas encore dans `eth_blockNumber`. Au dernier relevé, il restait 22 h 52 avant 23 h 59. Avec 7 576 blocs de retard et une production mesurée autour de 297 blocs/h, il aurait fallu valider environ `7576 / 22,87 + 297 = 628 blocs/h`. Sur les 75 min 50 s comparées, le RPC local en a publié zéro : le débit validé mesuré était donc inférieur au seuil requis. Les 0,28 bloc/s internes équivalent théoriquement à environ 1 008 blocs/h, mais ce travail n'était pas encore validé. Ces mesures ne permettent donc ni de promettre la fin à temps ni d'affirmer que la VM ne pourrait jamais synchroniser avec davantage de temps.
+
+Le diagnostic de stockage renforce l'explication : pendant un échantillon de 5 secondes, `/data` lisait environ 5,4 Mio/s, le périphérique était occupé presque tout le temps et la pression I/O `full` sur 60 secondes était autour de 66 %. Le processus Erigon dominait les lectures ; `bitcoind` était en échec et `electrs` inactif. Les mesures disponibles indiquent donc que le débit de validation publié n'a pas suivi Ethereum sur cette période, avec le stockage comme limite principale. Elles ne démontrent pas que la VM serait incapable de synchroniser un jour avec plus de temps ou un volume plus rapide.
+
+À 18 h 31, le nom du VPS se résolvait, mais deux connexions SSH ont expiré. Je ne peux pas en déduire que la VM a été arrêtée ni connaître son état depuis cette heure. Le relevé et les calculs sont conservés dans [evidence/2026-11-03-final-access-check.json](evidence/2026-11-03-final-access-check.json). La compilation depuis les sources, la configuration des services et les tests RPC décrits dans ce dépôt ont été réalisés ; la synchronisation complète, le mode `full` et le test réel de reboot restent des critères non satisfaits ou non vérifiés. Je ne présente donc pas le TD comme intégralement conforme.
 
 - Compilation depuis les sources : Erigon v3.8.1, qui inclut le code de Caplin dans le même binaire. Ce ne sont pas deux téléchargements de binaires précompilés.
 - HTTPS/WSS, authentification, TLS, namespaces `eth` et `web3` : testés depuis le PC. Les API `admin`, `debug` et `personal` sont désactivées.
